@@ -9,7 +9,9 @@ var animator = {
     
     mousePressed: false,
     mousePressX: null,
-    mousePressY: null
+    mousePressY: null,
+    
+    world: null
 }
 
 $(document).ready(function() {
@@ -36,7 +38,21 @@ $(document).ready(function() {
         animator.mousePressY = event.clientY;
     }).mouseup(function() {
         animator.mousePressed = false;
+    }).bind('mousewheel', function(e){
+        if (e.originalEvent.wheelDelta > 0) {
+            // zoom in
+            animator.camera.position.x *= 0.8;
+            animator.camera.position.y *= 0.8;
+            animator.camera.position.z *= 0.8;
+        } else {
+            // zoom out
+            animator.camera.position.x *= 1.25;
+            animator.camera.position.y *= 1.25;
+            animator.camera.position.z *= 1.25;
+        }
     });
+    
+    init();
     
     // renderer
     animator.renderer = new THREE.WebGLRenderer({
@@ -73,25 +89,16 @@ $(document).ready(function() {
         color: 0x666666,
         map: chessTexture
     });
-    var plane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000));
+    var plane = new THREE.Mesh(new THREE.PlaneGeometry(
+            animator.world.width, animator.world.height));
     plane.rotation.x = -Math.PI / 2;
     plane.material = chessMat;
     animator.scene.add(plane);
-    
-    // box
-    var boxMat = new THREE.MeshLambertMaterial({
-        color: 0x66ff22
-    });
-    var box = new THREE.Mesh(new THREE.CubeGeometry(200, 200, 300), boxMat);
-    box.position.set(200, 100, 0);
-    animator.scene.add(box);
-    
-    draw();
 });
 
 function resize() {
-    animator.width = $(window).innerWidth();
-    animator.height = $(window).innerHeight();
+    animator.width = document.body.clientWidth;
+    animator.height = document.body.clientHeight;
     
     $('canvas').width(animator.width).height(animator.height);
     
@@ -102,8 +109,22 @@ function resize() {
     }
 }
 
-function draw() {
+function init() {
+    animator.world = new World(2000, 2000);
     
+    var loader = new THREE.OBJMTLLoader();
+    loader.addEventListener('load', function (event) {
+        // add to scene once loaded
+        var barrel = event.content;
+        barrel.position.set(-750, 200, 0);
+        animator.scene.add(barrel);
+    
+        draw();
+    });
+    loader.load('model/barrel.obj', 'model/barrel.mtl');
+}
+
+function draw() {
     animator.renderer.render(animator.scene, animator.camera);
     
     requestAnimationFrame(draw);
