@@ -2,6 +2,10 @@ var animator = {
     width: null,
     height: null,
     
+    stats: null,
+    gui: null,
+    guiValue: null,
+    
     renderer: null,
     camera: null,
     scene: null,
@@ -50,9 +54,8 @@ $(document).ready(function() {
             animator.camera.position.y *= 1.25;
             animator.camera.position.z *= 1.25;
         }
+        animator.camera.lookAt(new THREE.Vector3(0, 250, 0));
     });
-    
-    init();
     
     // renderer
     animator.renderer = new THREE.WebGLRenderer({
@@ -89,11 +92,12 @@ $(document).ready(function() {
         color: 0x666666,
         map: chessTexture
     });
-    var plane = new THREE.Mesh(new THREE.PlaneGeometry(
-            animator.world.width, animator.world.height));
+    var plane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000));
     plane.rotation.x = -Math.PI / 2;
     plane.material = chessMat;
     animator.scene.add(plane);
+    
+    init();
 });
 
 function resize() {
@@ -110,22 +114,45 @@ function resize() {
 }
 
 function init() {
-    animator.world = new World(2000, 2000);
+    // FPS stats
+    animator.stats = new Stats();
+    animator.stats.domElement.style.position = 'absolute';
+    animator.stats.domElement.style.left = '0px';
+    animator.stats.domElement.style.top = '0px';
+    document.body.appendChild(animator.stats.domElement);
     
-    var loader = new THREE.OBJMTLLoader();
-    loader.addEventListener('load', function (event) {
-        // add to scene once loaded
-        var barrel = event.content;
-        barrel.position.set(-750, 200, 0);
-        animator.scene.add(barrel);
-    
-        draw();
+    // GUI
+    animator.gui = new dat.GUI();
+    animator.guiValue = {
+        Elevation: 200,
+        Azimuth: 0,
+        Altitude: 0
+    };
+    animator.gui.add(animator.guiValue, 'Elevation', 100, 400)
+            .onChange(function(value) {
+        animator.world.setElevation(value);
     });
-    loader.load('model/barrel.obj', 'model/barrel.mtl');
+    animator.gui.add(animator.guiValue, 'Azimuth', -Math.PI / 2, Math.PI / 2)
+            .step(0.1).onChange(function(value) {
+        animator.world.setAzimuth(value);
+    });
+    animator.gui.add(animator.guiValue, 'Altitude', 0, Math.PI / 2)
+            .step(0.1).onChange(function(value) {
+        animator.world.setAltitude(value);
+    });
+    
+    
+    animator.world = new World(2000, 2000);
+    animator.world.load(draw);
+    
 }
 
 function draw() {
+    animator.stats.begin();
+    
     animator.renderer.render(animator.scene, animator.camera);
+    
+    animator.stats.end();
     
     requestAnimationFrame(draw);
 }
