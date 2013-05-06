@@ -20,7 +20,8 @@ var animator = {
     
     world: null,
     
-    isShooting: false
+    isShooting: false,
+    isShooted: false
 }
 
 $(document).ready(function() {
@@ -169,6 +170,9 @@ function init() {
         
         'Shoot': function() {
             animator.world.shoot();
+        },
+        'Reset': function() {
+            animator.world.reset();
         }
     };
     animator.gui.add(animator.guiValue, 'Delta time (ms)', 0, 250)
@@ -191,6 +195,7 @@ function init() {
         animator.world.setPowderMass(value);
     });
     animator.gui.add(animator.guiValue, 'Shoot');
+    animator.gui.add(animator.guiValue, 'Reset');
     
     animator.world = new World(2000, 2000);
     animator.world.load(draw);

@@ -59,7 +59,7 @@ World.prototype = {
         this.mesh.barrel.rotation.y = -this.azimuth;
         this.mesh.base.rotation.y = -this.azimuth;
         
-        if (animator.isShooting) {
+        if (!animator.isShooting && !animator.isShooted) {
             this.resetProjectiles();
         }
     },
@@ -70,7 +70,7 @@ World.prototype = {
         
         this.mesh.barrel.rotation.z = this.elevation;
         
-        if (animator.isShooting) {
+        if (!animator.isShooting && !animator.isShooted) {
             this.resetProjectiles();
         }
     },
@@ -87,8 +87,14 @@ World.prototype = {
     resetProjectiles: function() {
         // get origin position of projectiles
         var origin = this.getBarrelEndPostion();
+        var s = {
+            x: 0,
+            y: 0,
+            z: 0
+        };
         for (var i in this.projectiles) {
             this.projectiles[i].origin = origin;
+            this.projectiles[i].s = s;
         }
     },
     
@@ -138,8 +144,18 @@ World.prototype = {
             }
             if (allLanded) {
                 animator.isShooting = false;
+                animator.isShooted = true;
             }
         }
+    },
+    
+    // reset to before shooting
+    reset: function() {
+        for (var i in this.projectiles) {
+            this.projectiles[i].clearTracks();
+        }
+        this.resetProjectiles();
+        animator.isShooted = false;
     }
 }
 
