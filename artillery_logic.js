@@ -54,8 +54,10 @@ World.prototype = {
     setAzimuth: function(azimuth) {
         this.azimuth = azimuth / 180 * Math.PI;
         
-        this.mesh.barrel.rotation.y = this.azimuth;
-        this.mesh.base.rotation.y = this.azimuth;
+        this.mesh.barrel.rotation.y = -this.azimuth;
+        this.mesh.base.rotation.y = -this.azimuth;
+        
+        this.resetProjectiles();
     },
     
     // set elevation of barrel, altitude should between 0 and PI / 2
@@ -64,12 +66,7 @@ World.prototype = {
         
         this.mesh.barrel.rotation.z = this.elevation;
         
-        // set origin position of projectiles
-        var origin = this.getBarrelEndPostion();
-        console.log(origin);
-        for (var i in this.projectiles) {
-            this.projectiles[i].origin = origin;
-        }
+        this.resetProjectiles();
     },
     
     setProjectileMass: function(mass) {
@@ -80,12 +77,24 @@ World.prototype = {
         //TODO
     },
     
+    // reset projectiles according to current parameters
+    resetProjectiles: function() {
+        // get origin position of projectiles
+        var origin = this.getBarrelEndPostion();
+        console.log(origin);
+        for (var i in this.projectiles) {
+            this.projectiles[i].origin = origin;
+        }
+    },
+    
     // get barrel end position, which is origin position for projectiles
     getBarrelEndPostion: function() {
         return {
-            x: this.artilleryX + this.barrelLength * Math.cos(this.elevation),
+            x: this.artilleryX + this.barrelLength * Math.cos(this.elevation)
+                    * Math.cos(this.azimuth),
             y: this.baseHeight + this.barrelLength * Math.sin(this.elevation),
-            z: 0
+            z: this.barrelLength * Math.cos(this.elevation)
+                    * Math.sin(this.azimuth)
         };
     }
 }
