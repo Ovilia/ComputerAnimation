@@ -159,23 +159,27 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
-        Elevation: 200,
-        Azimuth: 0,
-        Altitude: 0
+        'Elevation (deg)': 45,
+        'Azimuth (deg)': 0,
+        'Projectile mass (kg)': 1,
+        'Powder mass (kg)': 0.5
     };
-    animator.gui.add(animator.guiValue, 'Elevation', 100, 400)
-            .onChange(function(value) {
+    animator.gui.add(animator.guiValue, 'Elevation (deg)', 0, 90)
+            .step(1).onChange(function(value) {
         animator.world.setElevation(value);
     });
-    animator.gui.add(animator.guiValue, 'Azimuth', -Math.PI / 2, Math.PI / 2)
-            .step(0.1).onChange(function(value) {
+    animator.gui.add(animator.guiValue, 'Azimuth (deg)', -90, 90)
+            .step(1).onChange(function(value) {
         animator.world.setAzimuth(value);
     });
-    animator.gui.add(animator.guiValue, 'Altitude', 0, Math.PI / 2)
-            .step(0.1).onChange(function(value) {
-        animator.world.setAltitude(value);
+    animator.gui.add(animator.guiValue, 'Projectile mass (kg)', 0, 10)
+            .onChange(function(value) {
+        animator.world.setProjectileMass(value);
     });
-    
+    animator.gui.add(animator.guiValue, 'Powder mass (kg)', 0, 10)
+            .onChange(function(value) {
+        animator.world.setPowderMass(value);
+    });
     
     animator.world = new World(2000, 2000);
     animator.world.load(draw);
