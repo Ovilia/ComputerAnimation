@@ -18,7 +18,9 @@ var animator = {
     isLeftMouse: false,
     isMiddleMouse: false,
     
-    world: null
+    world: null,
+    
+    isShooting: false
 }
 
 $(document).ready(function() {
@@ -159,11 +161,19 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
+        'Delta time (ms)': 20,
         'Elevation (deg)': 45,
         'Azimuth (deg)': 0,
         'Projectile mass (kg)': 1,
-        'Powder mass (kg)': 0.5
+        'Powder mass (kg)': 0.5,
+        
+        'Shoot': function() {
+            animator.world.shoot();
+        }
     };
+    animator.gui.add(animator.guiValue, 'Delta time (ms)', 0, 250)
+            .step(10).onChange(function(value) {
+    });
     animator.gui.add(animator.guiValue, 'Elevation (deg)', 0, 90)
             .step(1).onChange(function(value) {
         animator.world.setElevation(value);
@@ -180,6 +190,7 @@ function init() {
             .onChange(function(value) {
         animator.world.setPowderMass(value);
     });
+    animator.gui.add(animator.guiValue, 'Shoot');
     
     animator.world = new World(2000, 2000);
     animator.world.load(draw);
@@ -189,9 +200,10 @@ function init() {
 function draw() {
     animator.stats.begin();
     
+    animator.world.update();
     animator.renderer.render(animator.scene, animator.camera);
     
     animator.stats.end();
     
-    requestAnimationFrame(draw);
+    setTimeout(draw, animator.guiValue['Delta time (ms)']);
 }
