@@ -8,12 +8,15 @@ var animator = {
     
     renderer: null,
     camera: null,
+    cameraLookX: 0,
     scene: null,
     light: null,
     
     mousePressed: false,
     mousePressX: null,
     mousePressY: null,
+    isLeftMouse: false,
+    isMiddleMouse: false,
     
     world: null
 }
@@ -24,25 +27,56 @@ $(document).ready(function() {
     
     // mouse event
     $('canvas').mousemove(function(event) {
+        event.preventDefault();
+        
         if (animator.mousePressed) {
-            // rotate camera with mouse dragging
             var dx = event.clientX - animator.mousePressX;
-            var da = Math.PI * dx / animator.width * 0.05;
-            var x = animator.camera.position.x;
-            var z = animator.camera.position.z;
-            var cos = Math.cos(da);
-            var sin = Math.sin(da);
-            animator.camera.position.x = cos * x - sin * z;
-            animator.camera.position.z = sin * x + cos * z;
-            animator.camera.lookAt(new THREE.Vector3(0, 250, 0));
+            // different action according to left or right mouse
+            if (animator.isLeftMouse) {
+                // rotate camera with mouse dragging
+                var da = Math.PI * dx / animator.width * 0.05;
+                var x = animator.camera.position.x;
+                var z = animator.camera.position.z;
+                var cos = Math.cos(da);
+                var sin = Math.sin(da);
+                animator.camera.position.x = cos * x - sin * z;
+                animator.camera.position.z = sin * x + cos * z;
+                animator.camera.lookAt(new THREE.Vector3(
+                        animator.cameraLookX, 250, 0));
+                
+            } else if (animator.isMiddleMouse) {
+                // move camera
+                var distance = -dx / animator.width * 100;
+                if (animator.camera.position.z < 0) {
+                    distance = -distance;
+                }
+                animator.cameraLookX += distance;
+                animator.camera.position.x += distance;
+            }
         }
     }).mousedown(function(event) {
+        event.preventDefault();
+        
         animator.mousePressed = true;
         animator.mousePressX = event.clientX;
         animator.mousePressY = event.clientY;
+        
+        animator.isLeftMouse = false;
+        animator.isRightMouse = false;
+        if (event.which === 1) {
+            animator.isLeftMouse = true;
+        } else if (event.which === 2) {
+            animator.isMiddleMouse = true;
+        }
+        
     }).mouseup(function() {
+        event.preventDefault();
+        
         animator.mousePressed = false;
+        
     }).bind('mousewheel', function(e){
+        event.preventDefault();
+        
         if (e.originalEvent.wheelDelta > 0) {
             // zoom in
             animator.camera.position.x *= 0.8;
@@ -87,13 +121,14 @@ $(document).ready(function() {
     // plane
     var chessTexture = THREE.ImageUtils.loadTexture('image/chess.jpg');
     chessTexture.wrapS = chessTexture.wrapT = THREE.RepeatWrapping;
-    chessTexture.repeat.set(16, 16);
+    chessTexture.repeat.set(32, 16);
     var chessMat = new THREE.MeshLambertMaterial({
         color: 0x666666,
         map: chessTexture
     });
-    var plane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000));
+    var plane = new THREE.Mesh(new THREE.PlaneGeometry(4000, 2000));
     plane.rotation.x = -Math.PI / 2;
+    plane.position.x = 1000;
     plane.material = chessMat;
     animator.scene.add(plane);
     
