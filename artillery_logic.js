@@ -331,11 +331,16 @@ Projectile.prototype = {
             }
             
             // check landed
-            if (this.s.y + this.origin.y + this.size / 2 <= 0) {
+            var landY = -this.origin.y + this.size / 2;
+            if (this.s.y <= landY) {
+                this.trackNow(time);
                 // move to ground
-                this.s.y = -this.origin.y + this.size / 2;
-                this.mesh.position.y = this.size / 2;
-                console.log(this.mesh.position.y)
+                this.s = {
+                    x: this.s.x - (landY - this.s.y) * (this.s.x - last.s.x) / (last.s.y - this.s.y),
+                    y: landY,
+                    z: this.s.z + (landY - this.s.y) * (this.s.z - last.s.z) / (last.s.y - this.s.y)
+                };
+                
                 this.isLanded = true;
                 
                 this.v.x = this.v.y = this.v.z = 0;
