@@ -83,6 +83,10 @@ World.prototype = {
         //TODO
     },
     
+    setAirFriction: function(friction) {
+        //TODO
+    },
+    
     // reset projectiles according to current parameters
     resetProjectiles: function() {
         // get origin position of projectiles
@@ -313,15 +317,23 @@ Projectile.prototype = {
         if (len !== 0) { // first track needn't do anything
             var last = this.tracks[len - 1];
             var deltaTime = time - last.time;
+            
+            // first result using euler algorithm
+            var sx1 = this.s.x + last.v.x * deltaTime;
+            var sy1 = this.s.y + last.v.y * deltaTime;
+            var sz1 = this.s.z + last.v.z * deltaTime;
+            var vx1 = this.v.x + last.a.x * deltaTime;
+            var vy1 = this.v.y + last.a.y * deltaTime;
+            var vz1 = this.v.z + last.a.z * deltaTime;
+                
             if (algorithm === 0) {
                 // euler
-                this.s.x += last.v.x * deltaTime;
-                this.s.y += last.v.y * deltaTime;
-                this.s.z += last.v.z * deltaTime;
-                
-                this.v.x += last.a.x * deltaTime;
-                this.v.y += last.a.y * deltaTime;
-                this.v.z += last.a.z * deltaTime;
+                this.s.x = sx1;
+                this.s.y = sy1;
+                this.s.z = sz1;
+                this.v.x = vx1;
+                this.v.y = vy1;
+                this.v.z = vz1;
                 
             } else if (algorithm === 1) {
                 // runge-kutta

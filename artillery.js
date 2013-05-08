@@ -167,6 +167,7 @@ function init() {
         'Azimuth (deg)': 0,
         'Projectile mass (kg)': 1,
         'Powder mass (kg)': 0.5,
+        'Air friction (kg/s)': 50,
         
         'Shoot': function() {
             animator.world.shoot();
@@ -193,6 +194,10 @@ function init() {
     animator.gui.add(animator.guiValue, 'Powder mass (kg)', 0, 10)
             .onChange(function(value) {
         animator.world.setPowderMass(value);
+    });
+    animator.gui.add(animator.guiValue, 'Air friction (kg/s)', 0, 100)
+            .onChange(function(value) {
+        animator.world.setAirFriction(value);
     });
     animator.gui.add(animator.guiValue, 'Shoot');
     animator.gui.add(animator.guiValue, 'Reset');
