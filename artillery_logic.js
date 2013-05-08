@@ -156,10 +156,9 @@ World.prototype = {
             if (this.frameCnt >= this.deltaTime / animator.renderDeltaTime) {
                 this.frameCnt = 0;
                 
-                var time = new Date();
                 var allLanded = true;
                 for (var i in this.projectiles) {
-                    this.projectiles[i].next(time, 0);
+                    this.projectiles[i].next(0);
                     if (this.projectiles[i].isLanded === false) {
                         allLanded = false;
                     }
@@ -297,7 +296,7 @@ Projectile.prototype = {
     },
     
     // add track according to current position of projectile
-    trackNow: function(time) {
+    trackNow: function() {
         var mesh = new THREE.Mesh(new THREE.CubeGeometry(this.trackSize,
                 this.trackSize, this.trackSize), this.material);
         mesh.position.set(this.origin.x + this.s.x,
@@ -319,7 +318,6 @@ Projectile.prototype = {
                 y: this.a.y,
                 z: this.a.z
             },
-            time: time,
             
             mesh: mesh
         };
@@ -330,35 +328,42 @@ Projectile.prototype = {
         }
     },
     
-    // move to next position, time is current time stamp, algorithm is either
+    // move to next position, algorithm is either
     // 0 or 1, stands for euler and runge-kutta method respectively.
-    next: function(time, algorithm) {
+    next: function(algorithm) {
         if (this.isLanded) {
             // don't do anything if is landed
             return;
         }
         var len = this.tracks.length;
+        var dt = animator.world.deltaTime;
         if (len !== 0) { // first track needn't do anything
             var last = this.tracks[len - 1];
-            var deltaTime = time - last.time;
             
             // first result using euler algorithm
-            var sx1 = this.s.x + last.v.x * deltaTime;
-            var sy1 = this.s.y + last.v.y * deltaTime;
-            var sz1 = this.s.z + last.v.z * deltaTime;
-            var vx1 = this.v.x + last.a.x * deltaTime;
-            var vy1 = this.v.y + last.a.y * deltaTime;
-            var vz1 = this.v.z + last.a.z * deltaTime;
-                
+            var sx1 = this.s.x + last.v.x * dt;
+            var sy1 = this.s.y + last.v.y * dt;
+            var sz1 = this.s.z + last.v.z * dt;
+            var vx1 = this.v.x + last.a.x * dt;
+            var vy1 = this.v.y + last.a.y * dt;
+            var vz1 = this.v.z + last.a.z * dt;
+            var ak = -animator.world.airFriction
+                    / animator.world.projectileMass;
             if (algorithm === 0) {
                 // euler
                 this.s.x = sx1;
                 this.s.y = sy1;
                 this.s.z = sz1;
+                
                 this.v.x = vx1;
                 this.v.y = vy1;
                 this.v.z = vz1;
                 
+                this.a.x = ak * vx1;
+                this.a.y = ak * vy1 - 0.098 / (1000 / dt) / (1000 / dt);
+                this.a.z = ak * vz1;
+                console.log(this.v)
+                console.log(this.a)
             } else if (algorithm === 1) {
                 // runge-kutta
                 
@@ -382,10 +387,9 @@ Projectile.prototype = {
                 
                 this.v.x = this.v.y = this.v.z = 0;
             }
-        } else
-        console.log(this.s);
+        }
         this.mesh.position.set(this.origin.x + this.s.x,
                 this.origin.y + this.s.y, this.origin.z + this.s.z);
-        this.trackNow(time);
+        this.trackNow();
     }
 };
