@@ -158,8 +158,12 @@ World.prototype = {
         for (var i in this.projectiles) {
             this.projectiles[i].clearTracks();
         }
-        this.resetProjectiles();
+        
         animator.isShooted = false;
+        
+        animator.gui.revert(animator.guiValue);
+        this.setAzimuth(0);
+        this.setElevation(45);
     }
 }
 
@@ -220,7 +224,7 @@ function Projectile(origin, color, size) {
     });
     
     if (typeof size !== 'number' || size < 0) {
-        this.size = 20;
+        this.size = 25;
     } else {
         this.size = size;
     }
