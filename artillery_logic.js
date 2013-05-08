@@ -9,13 +9,21 @@ function World(width, height) {
         grid: null
     };
     
+    this.deltaTime = 20;
+    this.barrelLength = 80;
+    this.elevation = Math.PI / 4;
+    this.azimuth = 0;
+    this.projectileMass = 1;
+    this.powderMass = 0.5;
+    this.airFriction = 50;
+    
     this.artilleryX = -750;
     this.baseHeight = 75;
-    this.azimuth = 0;
-    this.elevation = Math.PI / 4;
-    this.barrelLength = 120;
+    this.barrelModelLength = 120;
     
     this.projectiles = [];
+    
+    this.frameCnt = 0;
 };
 
 World.prototype = {
@@ -75,18 +83,6 @@ World.prototype = {
         }
     },
     
-    setProjectileMass: function(mass) {
-        //TODO
-    },
-    
-    setPowderMass: function(mass) {
-        //TODO
-    },
-    
-    setAirFriction: function(friction) {
-        //TODO
-    },
-    
     // reset projectiles according to current parameters
     resetProjectiles: function() {
         // get origin position of projectiles
@@ -105,10 +101,11 @@ World.prototype = {
     // get barrel end position, which is origin position for projectiles
     getBarrelEndPostion: function() {
         return {
-            x: this.artilleryX + this.barrelLength * Math.cos(this.elevation)
-                    * Math.cos(this.azimuth),
-            y: this.baseHeight + this.barrelLength * Math.sin(this.elevation),
-            z: this.barrelLength * Math.cos(this.elevation)
+            x: this.artilleryX + this.barrelModelLength
+                    * Math.cos(this.elevation) * Math.cos(this.azimuth),
+            y: this.baseHeight + this.barrelModelLength
+                    * Math.sin(this.elevation),
+            z: this.barrelModelLength * Math.cos(this.elevation)
                     * Math.sin(this.azimuth)
         };
     },
@@ -116,9 +113,20 @@ World.prototype = {
     // start shooting
     shoot: function() {
         animator.isShooting = true;
+        this.frameCnt = 0;
+        
+        var newtonPerKg = 100; // 10000N = 10000m/s^2 = 100worldLength/s^2
+        var v = Math.sqrt(2 * newtonPerKg * this.powderMass
+                / this.projectileMass) / 1000 * this.deltaTime;
+        var vx = v * Math.cos(this.elevation) * Math.cos(this.azimuth);
+        var vy = v * Math.sin(this.elevation);
+        var vz = v * Math.cos(this.elevation) * Math.sin(this.azimuth);
+        
+        var origin = this.getBarrelEndPostion();
             
         for (var i in animator.world.projectiles) {
             animator.world.projectiles[i].clearTracks();
+            this.projectiles[i].origin = origin;
             animator.world.projectiles[i].isLanded = false;
             
             animator.world.projectiles[i].s = {
@@ -127,29 +135,41 @@ World.prototype = {
                 z: 0
             };
             animator.world.projectiles[i].v = {
-                x: 3,
-                y: 5,
+                x: vx,
+                y: vy,
+                z: vz
+            };
+            animator.world.projectiles[i].a = {
+                x: 0,
+                y: -0.098 / (1000 / this.deltaTime) / (1000 / this.deltaTime),
                 z: 0
             };
-            animator.world.projectiles[i].a.y = -0.03;
         }
     },
     
     // change projectile position if is shooting
     update: function() {
         if (animator.isShooting) {
-            var time = new Date();
-            var allLanded = true;
-            for (var i in this.projectiles) {
-                this.projectiles[i].next(time, 0);
-                if (this.projectiles[i].isLanded === false) {
-                    allLanded = false;
+            this.frameCnt += 1;
+            
+            var fps = 50;
+            if (this.frameCnt >= this.deltaTime / animator.renderDeltaTime) {
+                this.frameCnt = 0;
+                
+                var time = new Date();
+                var allLanded = true;
+                for (var i in this.projectiles) {
+                    this.projectiles[i].next(time, 0);
+                    if (this.projectiles[i].isLanded === false) {
+                        allLanded = false;
+                    }
+                }
+                if (allLanded) {
+                    animator.isShooting = false;
+                    animator.isShooted = true;
                 }
             }
-            if (allLanded) {
-                animator.isShooting = false;
-                animator.isShooted = true;
-            }
+            
         }
     },
     
@@ -238,7 +258,7 @@ function Projectile(origin, color, size) {
     // boxes to show track
     this.tracks = [];
     this.isTracksVisble = true;
-    this.trackSize = 10;
+    this.trackSize = 5;
     
     // stopped because landed on grand
     this.isLanded = false;
@@ -349,19 +369,21 @@ Projectile.prototype = {
             // check landed
             var landY = -this.origin.y + this.size / 2;
             if (this.s.y <= landY) {
-                this.trackNow(time);
                 // move to ground
                 this.s = {
-                    x: this.s.x - (landY - this.s.y) * (this.s.x - last.s.x) / (last.s.y - this.s.y),
+                    x: this.s.x - (landY - this.s.y) * (this.s.x - last.s.x)
+                            / (last.s.y - this.s.y),
                     y: landY,
-                    z: this.s.z + (landY - this.s.y) * (this.s.z - last.s.z) / (last.s.y - this.s.y)
+                    z: this.s.z + (landY - this.s.y) * (this.s.z - last.s.z)
+                            / (last.s.y - this.s.y)
                 };
                 
                 this.isLanded = true;
                 
                 this.v.x = this.v.y = this.v.z = 0;
             }
-        }
+        } else
+        console.log(this.s);
         this.mesh.position.set(this.origin.x + this.s.x,
                 this.origin.y + this.s.y, this.origin.z + this.s.z);
         this.trackNow(time);

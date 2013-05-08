@@ -21,7 +21,9 @@ var animator = {
     world: null,
     
     isShooting: false,
-    isShooted: false
+    isShooted: false,
+    
+    renderDeltaTime: 16 // ms
 }
 
 $(document).ready(function() {
@@ -164,9 +166,10 @@ function init() {
     animator.guiValue = {
         'Delta time (ms)': 20,
         'Elevation (deg)': 45,
+        'Barrel length(cm)': 80,
         'Azimuth (deg)': 0,
         'Projectile mass (kg)': 1,
-        'Powder mass (kg)': 0.5,
+        'Powder mass (kg)': 5,
         'Air friction (kg/s)': 50,
         
         'Shoot': function() {
@@ -176,8 +179,13 @@ function init() {
             animator.world.reset();
         }
     };
-    animator.gui.add(animator.guiValue, 'Delta time (ms)', 0, 250)
+    animator.gui.add(animator.guiValue, 'Delta time (ms)', 20, 250)
             .step(10).onChange(function(value) {
+        animator.world.deltaTime = value;
+    });
+    animator.gui.add(animator.guiValue, 'Barrel length(cm)', 0, 120)
+            .step(1).onChange(function(value) {
+        animator.world.barrelLength = value;
     });
     animator.gui.add(animator.guiValue, 'Elevation (deg)', 0, 90)
             .step(1).onChange(function(value) {
@@ -189,15 +197,15 @@ function init() {
     });
     animator.gui.add(animator.guiValue, 'Projectile mass (kg)', 0, 10)
             .onChange(function(value) {
-        animator.world.setProjectileMass(value);
+        animator.world.projectileMass = value;
     });
     animator.gui.add(animator.guiValue, 'Powder mass (kg)', 0, 10)
             .onChange(function(value) {
-        animator.world.setPowderMass(value);
+        animator.world.powderMass = value;
     });
     animator.gui.add(animator.guiValue, 'Air friction (kg/s)', 0, 100)
             .onChange(function(value) {
-        animator.world.setAirFriction(value);
+        animator.world.airFriction = value;
     });
     animator.gui.add(animator.guiValue, 'Shoot');
     animator.gui.add(animator.guiValue, 'Reset');
@@ -215,5 +223,5 @@ function draw() {
     
     animator.stats.end();
     
-    setTimeout(draw, animator.guiValue['Delta time (ms)']);
+    setTimeout(draw, animator.renderDeltaTime);
 }
