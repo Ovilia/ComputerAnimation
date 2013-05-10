@@ -9,12 +9,12 @@ function World(width, height) {
         grid: null
     };
     
-    this.deltaTime = 20;
+    this.deltaTime = 50;
     this.barrelLength = 2.5;
     this.elevation = Math.PI / 4;
     this.azimuth = 0;
-    this.projectileMass = 0.5;
-    this.powderMass = 5;
+    this.projectileMass = 1;
+    this.powderMass = 1;
     this.airFriction = 50;
     
     this.artilleryX = -7.5;
@@ -158,7 +158,6 @@ World.prototype = {
             var fps = 50;
             if (this.frameCnt >= this.deltaTime / animator.renderDeltaTime) {
                 this.frameCnt = 0;
-                
                 var allLanded = true;
                 for (var i in this.projectiles) {
                     this.projectiles[i].next(0);
@@ -351,7 +350,8 @@ Projectile.prototype = {
             var vx1 = this.v.x + last.a.x * dt;
             var vy1 = this.v.y + last.a.y * dt;
             var vz1 = this.v.z + last.a.z * dt;
-            var ak = -animator.world.airFriction / 1000 * animator.world.deltaTime;
+            var ak = -animator.world.airFriction / 1000
+                    * animator.world.deltaTime;
             if (algorithm === 0) {
                 // euler
                 this.s.x = sx1;
@@ -363,10 +363,8 @@ Projectile.prototype = {
                 this.v.z = vz1;
                 
                 this.a.x = ak * vx1;
-                this.a.y = ak * vy1 - 9.8;
+                this.a.y = ak * vy1 - 9.8 / 1000 * animator.world.deltaTime;
                 this.a.z = ak * vz1;
-                console.log(this.v)
-                console.log(this.a)
             } else if (algorithm === 1) {
                 // runge-kutta
                 

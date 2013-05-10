@@ -164,12 +164,12 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
-        'Delta time (ms)': 20,
+        'Delta time (ms)': 100,
         'Elevation (deg)': 45,
         'Barrel length(cm)': 2.5,
         'Azimuth (deg)': 0,
-        'Projectile mass (kg)': 0.5,
-        'Powder mass (kg)': 5,
+        'Projectile mass (kg)': 1,
+        'Powder mass (kg)': 1,
         'Air friction (kg/s)': 50,
         
         'Shoot': function() {
