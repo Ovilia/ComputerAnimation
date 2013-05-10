@@ -24,7 +24,7 @@ function World(width, height) {
     this.projectiles = [];
     
     this.frameCnt = 0;
-};
+}
 
 World.prototype = {
     // load models, set meshes
