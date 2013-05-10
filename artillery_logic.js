@@ -54,11 +54,14 @@ World.prototype = {
         loader.load('model/barrel.obj', 'model/barrel.mtl');
         loader.load('model/base.obj', 'model/base.mtl');
         
-        // projectile
+        // projectiles
         var origin = this.getBarrelEndPostion();
-        var projectile = new Projectile(origin, 0x3399ff);
-        animator.scene.add(projectile.mesh);
-        this.projectiles.push(projectile);
+        var colors = [0xff3333, 0x33ff33, 0x3366ff];
+        for (var i in colors) {
+            var projectile = new Projectile(origin, colors[i]);
+            animator.scene.add(projectile.mesh);
+            this.projectiles.push(projectile);
+        }
     },
     
     // set azimuth of barrel, azimuth should between -PI / 2 and PI / 2
@@ -159,8 +162,9 @@ World.prototype = {
             if (this.frameCnt >= this.deltaTime / animator.renderDeltaTime) {
                 this.frameCnt = 0;
                 var allLanded = true;
-                for (var i in this.projectiles) {
-                    this.projectiles[i].next(0);
+                var len = this.projectiles.length;
+                for (var i = 0; i < len; ++i) {
+                    this.projectiles[i].next(i);
                     if (this.projectiles[i].isLanded === false) {
                         allLanded = false;
                     }
@@ -186,6 +190,10 @@ World.prototype = {
         animator.gui.revert(animator.guiValue);
         this.setAzimuth(0);
         this.setElevation(45);
+        
+        animator.camera.position.set(7.5, 10, 7.5);
+        animator.camera.lookAt(new THREE.Vector3(0, 2.5, 0));
+        animator.cameraLookX = 0;
     }
 }
 
@@ -251,7 +259,8 @@ function Projectile(origin, color, size) {
         this.size = size;
     }
     this.material = new THREE.MeshLambertMaterial({
-        color: color
+        color: color,
+        side: THREE.DoubleSide
     })
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(this.size, 8, 8),
             this.material);
@@ -260,7 +269,7 @@ function Projectile(origin, color, size) {
     // boxes to show track
     this.tracks = [];
     this.isTracksVisble = true;
-    this.trackSize = 0.05;
+    this.trackSize = 0.1;
     
     // stopped because landed on grand
     this.isLanded = false;
@@ -300,11 +309,11 @@ Projectile.prototype = {
     
     // add track according to current position of projectile
     trackNow: function() {
-        var mesh = new THREE.Mesh(new THREE.CubeGeometry(this.trackSize,
-                this.trackSize, this.trackSize), this.material);
+        var mesh = new THREE.Mesh(new THREE.PlaneGeometry(this.trackSize,
+                    this.trackSize), this.material);
         mesh.position.set(this.origin.x + this.s.x,
-                this.origin.y + this.s.y, this.origin.z + this.s.z);
-        
+                    this.origin.y + this.s.y, this.origin.z + this.s.z);
+            
         var track = {
             s: {
                 x: this.s.x,
@@ -343,6 +352,8 @@ Projectile.prototype = {
         if (len !== 0) { // first track needn't do anything
             var last = this.tracks[len - 1];
             
+            var ak = -animator.world.airFriction / 1000
+                    * animator.world.deltaTime;
             // first result using euler algorithm
             var sx1 = this.s.x + last.v.x * dt;
             var sy1 = this.s.y + last.v.y * dt;
@@ -350,8 +361,10 @@ Projectile.prototype = {
             var vx1 = this.v.x + last.a.x * dt;
             var vy1 = this.v.y + last.a.y * dt;
             var vz1 = this.v.z + last.a.z * dt;
-            var ak = -animator.world.airFriction / 1000
-                    * animator.world.deltaTime;
+            var ax1 = ak * vx1;
+            var ay1 = ak * vy1 - 9.8 / 1000 * animator.world.deltaTime;
+            var az1 = ak * vz1;
+            
             if (algorithm === 0) {
                 // euler
                 this.s.x = sx1;
@@ -362,15 +375,69 @@ Projectile.prototype = {
                 this.v.y = vy1;
                 this.v.z = vz1;
                 
-                this.a.x = ak * vx1;
-                this.a.y = ak * vy1 - 9.8 / 1000 * animator.world.deltaTime;
-                this.a.z = ak * vz1;
             } else if (algorithm === 1) {
-                // runge-kutta
+                var midVx = (vx1 + this.v.x) / 2;
+                var midVy = (vy1 + this.v.y) / 2;
+                var midVz = (vz1 + this.v.z) / 2;
+                var midAx = ak * midVx;
+                var midAy = ak * midVy - 9.8 / 1000
+                        * animator.world.deltaTime;
+                var midAz = ak * midVz;
                 
+                this.s.x = this.s.x + midVx * dt;
+                this.s.y = this.s.y + midVy * dt;
+                this.s.z = this.s.z + midVz * dt;
+                
+                this.v.x = this.v.x + midAx * dt;
+                this.v.y = this.v.y + midAy * dt;
+                this.v.z = this.v.z + midAz * dt;
+                
+            } else if (algorithm === 2) {
+                // forth-order Runge-Kutta
+                var midVx1 = (vx1 + this.v.x) / 2;
+                var midVy1 = (vy1 + this.v.y) / 2;
+                var midVz1 = (vz1 + this.v.z) / 2;
+                var midAx1 = ak * midVx1;
+                var midAy1 = ak * midVy1 - 9.8 / 1000
+                        * animator.world.deltaTime;
+                var midAz1 = ak * midVz1;
+                
+                var midVx2 = (vx1 + midVx1) / 2;
+                var midVy2 = (vy1 + midVy1) / 2;
+                var midVz2 = (vz1 + midVz1) / 2;
+                var midAx2 = ak * midVx2;
+                var midAy2 = ak * midVy2 - 9.8 / 1000
+                        * animator.world.deltaTime;
+                var midAz2 = ak * midVz2;
+                
+                var midVx3 = (this.v.x + midVx1) / 2;
+                var midVy3 = (this.v.y + midVy1) / 2;
+                var midVz3 = (this.v.z + midVz1) / 2;
+                var midAx3 = ak * midVx3;
+                var midAy3 = ak * midVy3 - 9.8 / 1000
+                        * animator.world.deltaTime;
+                var midAz3 = ak * midVz3;
+                
+                this.s.x = this.s.x + ((vx1 + midVx3) / 6
+                        + (midVx2 + midVx1) / 3) * dt;
+                this.s.y = this.s.y + ((vy1 + midVy3) / 6
+                        + (midVy2 + midVy1) / 3) * dt;
+                this.s.z = this.s.z + ((vz1 + midVz3) / 6
+                        + (midVz2 + midVz1) / 3) * dt;
+                
+                this.v.x = this.v.x + ((ax1 + midAx3) / 6
+                        + (midAx2 + midAx1) / 3) * dt;
+                this.v.y = this.v.y + ((ay1 + midAy3) / 6
+                        + (midAy2 + midAy1) / 3) * dt;
+                this.v.z = this.v.z + ((az1 + midAz3) / 6
+                        + (midAz2 + midAz1) / 3) * dt;
             } else {
                 console.error('Error in next: algorithm not exists.');
             }
+            // calculate a according to v
+            this.a.x = ak * this.v.x;
+            this.a.y = ak * this.v.y - 9.8 / 1000 * animator.world.deltaTime;
+            this.a.z = ak * this.v.z;
             
             // check landed
             var landY = -this.origin.y + this.size / 2;

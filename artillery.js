@@ -164,7 +164,7 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
-        'Delta time (ms)': 100,
+        'Delta time (ms)': 50,
         'Elevation (deg)': 45,
         'Barrel length(cm)': 2.5,
         'Azimuth (deg)': 0,
