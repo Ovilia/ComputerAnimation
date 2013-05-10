@@ -47,11 +47,11 @@ $(document).ready(function() {
                 animator.camera.position.x = cos * x - sin * z;
                 animator.camera.position.z = sin * x + cos * z;
                 animator.camera.lookAt(new THREE.Vector3(
-                        animator.cameraLookX, 250, 0));
+                        animator.cameraLookX, 2.5, 0));
                 
             } else if (animator.isMiddleMouse) {
                 // move camera
-                var distance = -dx / animator.width * 100;
+                var distance = -dx / animator.width;
                 if (animator.camera.position.z < 0) {
                     distance = -distance;
                 }
@@ -93,7 +93,7 @@ $(document).ready(function() {
             animator.camera.position.y *= 1.25;
             animator.camera.position.z *= 1.25;
         }
-        animator.camera.lookAt(new THREE.Vector3(0, 250, 0));
+        animator.camera.lookAt(new THREE.Vector3(0, 2.5, 0));
     });
     
     // renderer
@@ -111,8 +111,8 @@ $(document).ready(function() {
     // camera
     animator.camera = new THREE.PerspectiveCamera(
             60, animator.width / animator.height, 1, 10000);
-    animator.camera.position.set(750, 1000, 750);
-    animator.camera.lookAt(new THREE.Vector3(0, 250, 0));
+    animator.camera.position.set(7.5, 10, 7.5);
+    animator.camera.lookAt(new THREE.Vector3(0, 2.5, 0));
     animator.scene.add(animator.camera);
     
     // light
@@ -131,9 +131,9 @@ $(document).ready(function() {
         color: 0x666666,
         map: chessTexture
     });
-    var plane = new THREE.Mesh(new THREE.PlaneGeometry(4000, 2000));
+    var plane = new THREE.Mesh(new THREE.PlaneGeometry(40, 20));
     plane.rotation.x = -Math.PI / 2;
-    plane.position.x = 1000;
+    plane.position.x = 10;
     plane.material = chessMat;
     animator.scene.add(plane);
     
@@ -166,9 +166,9 @@ function init() {
     animator.guiValue = {
         'Delta time (ms)': 20,
         'Elevation (deg)': 45,
-        'Barrel length(cm)': 80,
+        'Barrel length(cm)': 2.5,
         'Azimuth (deg)': 0,
-        'Projectile mass (kg)': 1,
+        'Projectile mass (kg)': 0.5,
         'Powder mass (kg)': 5,
         'Air friction (kg/s)': 50,
         
@@ -183,8 +183,8 @@ function init() {
             .step(10).onChange(function(value) {
         animator.world.deltaTime = value;
     });
-    animator.gui.add(animator.guiValue, 'Barrel length(cm)', 0, 120)
-            .step(1).onChange(function(value) {
+    animator.gui.add(animator.guiValue, 'Barrel length(cm)', 0, 5)
+            .step(0.1).onChange(function(value) {
         animator.world.barrelLength = value;
     });
     animator.gui.add(animator.guiValue, 'Elevation (deg)', 0, 90)

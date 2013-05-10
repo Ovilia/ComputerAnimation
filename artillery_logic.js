@@ -10,16 +10,16 @@ function World(width, height) {
     };
     
     this.deltaTime = 20;
-    this.barrelLength = 80;
+    this.barrelLength = 2.5;
     this.elevation = Math.PI / 4;
     this.azimuth = 0;
-    this.projectileMass = 1;
-    this.powderMass = 0.5;
+    this.projectileMass = 0.5;
+    this.powderMass = 5;
     this.airFriction = 50;
     
-    this.artilleryX = -750;
-    this.baseHeight = 75;
-    this.barrelModelLength = 120;
+    this.artilleryX = -7.5;
+    this.baseHeight = 0.75;
+    this.barrelModelLength = 1.2;
     
     this.projectiles = [];
     
@@ -36,6 +36,7 @@ World.prototype = {
         loader.addEventListener('load', function (event) {
             // load models
             var model = event.content;
+            model.scale.set(0.01, 0.01, 0.01);
             model.position.set(that.artilleryX, that.baseHeight, 0);
             animator.scene.add(model);
             
@@ -115,9 +116,10 @@ World.prototype = {
         animator.isShooting = true;
         this.frameCnt = 0;
         
-        var newtonPerKg = 100; // 10000N = 10000m/s^2 = 100worldLength/s^2
+        var newtonPerKg = 10000;
         var v = Math.sqrt(2 * newtonPerKg * this.powderMass
-                / this.projectileMass) / 1000 * this.deltaTime;
+                / this.projectileMass * this.barrelLength)
+                / 1000 * this.deltaTime;
         var vx = v * Math.cos(this.elevation) * Math.cos(this.azimuth);
         var vy = v * Math.sin(this.elevation);
         var vz = v * Math.cos(this.elevation) * Math.sin(this.azimuth);
@@ -141,7 +143,8 @@ World.prototype = {
             };
             animator.world.projectiles[i].a = {
                 x: 0,
-                y: -0.098 / (1000 / this.deltaTime) / (1000 / this.deltaTime),
+                y: -0.098 / (1000 / animator.renderDeltaTime)
+                        / (1000 / animator.renderDeltaTime),
                 z: 0
             };
         }
@@ -179,6 +182,7 @@ World.prototype = {
         }
         
         animator.isShooted = false;
+        animator.isShooting = false;
         
         animator.gui.revert(animator.guiValue);
         this.setAzimuth(0);
@@ -243,7 +247,7 @@ function Projectile(origin, color, size) {
     });
     
     if (typeof size !== 'number' || size < 0) {
-        this.size = 25;
+        this.size = 0.25;
     } else {
         this.size = size;
     }
@@ -257,7 +261,7 @@ function Projectile(origin, color, size) {
     // boxes to show track
     this.tracks = [];
     this.isTracksVisble = true;
-    this.trackSize = 5;
+    this.trackSize = 0.05;
     
     // stopped because landed on grand
     this.isLanded = false;
@@ -336,7 +340,7 @@ Projectile.prototype = {
             return;
         }
         var len = this.tracks.length;
-        var dt = animator.world.deltaTime;
+        var dt = animator.world.deltaTime / 1000;
         if (len !== 0) { // first track needn't do anything
             var last = this.tracks[len - 1];
             
@@ -347,8 +351,7 @@ Projectile.prototype = {
             var vx1 = this.v.x + last.a.x * dt;
             var vy1 = this.v.y + last.a.y * dt;
             var vz1 = this.v.z + last.a.z * dt;
-            var ak = -animator.world.airFriction
-                    / animator.world.projectileMass;
+            var ak = -animator.world.airFriction / 1000 * animator.world.deltaTime;
             if (algorithm === 0) {
                 // euler
                 this.s.x = sx1;
@@ -360,7 +363,7 @@ Projectile.prototype = {
                 this.v.z = vz1;
                 
                 this.a.x = ak * vx1;
-                this.a.y = ak * vy1 - 0.098 / (1000 / dt) / (1000 / dt);
+                this.a.y = ak * vy1 - 9.8;
                 this.a.z = ak * vz1;
                 console.log(this.v)
                 console.log(this.a)
