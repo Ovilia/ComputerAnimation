@@ -80,9 +80,9 @@ $(document).ready(function() {
     animator.scene = new THREE.Scene();
     
     // camera
-    animator.camera = new THREE.OrthographicCamera(-2, 2, animator.height
-            / animator.width * 2, -animator.height / animator.width * 2);
-    animator.camera.position.set(0, -1, 1);
+    animator.camera = new THREE.OrthographicCamera(-4, 4, animator.height
+            / animator.width * 4, -animator.height / animator.width * 4);
+    animator.camera.position.set(0, -2, 1);
     animator.scene.add(animator.camera);
     
     // light
@@ -121,18 +121,22 @@ function init() {
     animator.gui = new dat.GUI();
     animator.guiValue = {
         'Mass (kg)': 5,
-        'K (kg/s^2)': 15,
+        'Elastic k (kg/s^2)': 15,
         
         'Start': function() {
+            animator.world.start();
         },
         'Reset': function() {
+            animator.world.reset();
         }
     };
     animator.gui.add(animator.guiValue, 'Mass (kg)', 0.5, 20)
             .step(0.5).onChange(function(value) {
+        animator.world.mass = value;
     });
-    animator.gui.add(animator.guiValue, 'K (kg/s^2)', 0, 50)
+    animator.gui.add(animator.guiValue, 'Elastic k (kg/s^2)', 0, 50)
             .step(5).onChange(function(value) {
+        animator.world.elasticK = value;
     });
     animator.gui.add(animator.guiValue, 'Start');
     animator.gui.add(animator.guiValue, 'Reset');
@@ -144,6 +148,7 @@ function init() {
 function draw() {
     animator.stats.begin();
     
+    animator.world.update();
     animator.renderer.render(animator.scene, animator.camera);
     
     animator.stats.end();

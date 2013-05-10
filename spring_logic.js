@@ -1,4 +1,7 @@
 function World() {
+    this.mass = 5;
+    this.elasticK = 15;
+    
     this.springWidth = 0.2;
     this.springHeight = 1;
     this.springFarthest = 0.5;
@@ -9,6 +12,8 @@ function World() {
     this.origin = [-this.springHeight, -this.springHeight, -this.springHeight];
     
     this.balls = [];
+    
+    this.isMoving = false;
 }
 
 World.prototype = {
@@ -29,7 +34,7 @@ World.prototype = {
                 animator.scene.add(that.springMesh[i]);
                 
                 // move to farthest position
-                that.move(i, -that.springFarthest);
+                //that.move(i, -that.springFarthest);
             }
             
             if (callback) {
@@ -50,9 +55,30 @@ World.prototype = {
     
     start: function() {
         for (var i = 0; i < this.springMesh.length; ++i) {
-            
+            //this.move(i, this.springFarthest);
         }
-    }
+        this.isMoving = true;
+    },
+    
+    reset: function() {
+        var dt = animator.renderDeltaTime / 1000;
+        for (var i = 0; i < this.springMesh.length; ++i) {
+            this.move(i, 0);
+            this.balls[i].a = -9.8 * dt;
+            this.balls[i].v = 0;
+            this.balls[i].s = 0;
+        }
+        this.isMoving = false;
+    },
+    
+    update: function() {
+        if (this.isMoving) {
+            for (var i = 0; i < this.springMesh.length; ++i) {
+                this.balls[i].next(i);
+                this.move(i, this.balls[i].s);
+            }
+        }
+    },
 }
 
 function Ball(springX, origin, color) {
@@ -68,4 +94,54 @@ function Ball(springX, origin, color) {
     this.mesh.position.x = springX;
     this.mesh.position.y = origin;
     animator.scene.add(this.mesh);
+}
+
+Ball.prototype = {    
+    next: function(algorithm) {
+        var dt = animator.renderDeltaTime / 1000;
+        var k = animator.world.elasticK * dt;
+        var g = 9.8 * dt;
+        
+        var s1 = this.s + this.v * dt;
+        var v1 = this.v + this.a * dt;
+        
+        if (algorithm === 0) {
+            // euler
+            this.s = s1;
+            this.v = v1;
+            this.a = -k * s1 - g;
+            
+        } else if (algorithm === 1) {
+            // mid point
+            var midV = (v1 + this.v) / 2;
+            var midS = (s1 + this.s) / 2;
+            var midA = -k * midS - g;
+            
+            this.s = this.s + midV * dt;
+            this.v = this.v + midA * dt;
+            this.a = -k * this.s - g;
+            
+        } else if (algorithm === 2) {
+            // forth-order runge-kutta
+            var s1 = this.v * dt;
+            var a1 = -k * s1 - g;
+            var v1 = a1 * dt;
+            
+            var s2 = (this.v + v1 / 2) * dt;
+            var a2 = -k * s2 - g;
+            var v2 = a2 * dt;
+            
+            var s3 = (this.v + v2 / 2) * dt;
+            var a3 = -k * s3 - g;
+            var v3 = a3 * dt;
+            
+            var s4 = (this.v + s3) * dt;
+            var a4 = -k * s4 - g;
+            var v4 = a4 * dt;
+            
+            this.s = this.s + (s1 + s4) / 6 + (s2 + s3) / 3;
+            this.v = this.v + (v1 + v4) / 6 + (v2 + v3) / 3;
+            this.a = -k * this.s - g;
+        }
+    }
 }
