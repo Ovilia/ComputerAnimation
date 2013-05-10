@@ -80,9 +80,9 @@ $(document).ready(function() {
     animator.scene = new THREE.Scene();
     
     // camera
-    animator.camera = new THREE.PerspectiveCamera(
-            60, animator.width / animator.height, 1, 10000);
-    animator.camera.position.set(0, -1, 10);
+    animator.camera = new THREE.OrthographicCamera(-2, 2, animator.height
+            / animator.width * 2, -animator.height / animator.width * 2);
+    animator.camera.position.set(0, -0.75, 1);
     animator.scene.add(animator.camera);
     
     // light
