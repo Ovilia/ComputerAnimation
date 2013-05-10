@@ -82,7 +82,7 @@ $(document).ready(function() {
     // camera
     animator.camera = new THREE.OrthographicCamera(-2, 2, animator.height
             / animator.width * 2, -animator.height / animator.width * 2);
-    animator.camera.position.set(0, -0.75, 1);
+    animator.camera.position.set(0, -1, 1);
     animator.scene.add(animator.camera);
     
     // light

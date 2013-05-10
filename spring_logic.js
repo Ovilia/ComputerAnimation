@@ -1,6 +1,8 @@
 function World() {
     this.springWidth = 0.2;
-    this.springHeight = 0.5;
+    this.springHeight = 1;
+    this.springFarthest = 0.5;
+    
     this.springX = [-0.5, 0, 0.5];
     this.springMesh = [];
     
@@ -25,6 +27,9 @@ World.prototype = {
                 that.springMesh[i] = event.content.clone();
                 that.springMesh[i].position.x = that.springX[i];
                 animator.scene.add(that.springMesh[i]);
+                
+                // move to farthest position
+                that.move(i, -that.springFarthest);
             }
             
             if (callback) {
@@ -41,6 +46,12 @@ World.prototype = {
         
         this.origin[index] = -this.springHeight + x;
         this.balls[index].mesh.position.y = this.origin[index];
+    },
+    
+    start: function() {
+        for (var i = 0; i < this.springMesh.length; ++i) {
+            
+        }
     }
 }
 
@@ -52,7 +63,7 @@ function Ball(springX, origin, color) {
     this.material = new THREE.MeshLambertMaterial({
         color: color
     })
-    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
+    this.mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 8),
             this.material);
     this.mesh.position.x = springX;
     this.mesh.position.y = origin;
