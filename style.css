@@ -10,3 +10,34 @@ body {
 canvas {
     background-color: #ddd;
 }
+
+#legend {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    
+    opacity: 0.4;
+}
+
+#legend:hover {
+    opacity: 1.0;
+}
+
+.euler {
+    color: #ff3333;
+}
+
+.mid_point {
+    color: #009900;
+}
+
+.forth_order {
+    color: #3366ff;
+}
+
+#author {
+    margin-top: 10px;
+}

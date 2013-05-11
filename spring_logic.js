@@ -4,7 +4,6 @@ function World() {
     
     this.springWidth = 0.2;
     this.springHeight = 1;
-    this.springFarthest = 0.5;
     
     this.springX = [-0.5, 0, 0.5];
     this.springMesh = [];
@@ -12,8 +11,10 @@ function World() {
     this.origin = [-this.springHeight, -this.springHeight, -this.springHeight];
     
     this.balls = [];
+    this.lineMesh = [];
+    this.lineHelpMesh = [];
     
-    this.isMoving = false;
+    this.isPaused = true;
 }
 
 World.prototype = {
@@ -33,8 +34,17 @@ World.prototype = {
                 that.springMesh[i].position.x = that.springX[i];
                 animator.scene.add(that.springMesh[i]);
                 
-                // move to farthest position
-                //that.move(i, -that.springFarthest);
+                // line to see position
+                var material = new THREE.LineBasicMaterial({
+                    color: colors[i]
+                });
+                var geometry = new THREE.Geometry();
+                geometry.vertices.push(new THREE.Vector3(-5, 0, 0));
+                geometry.vertices.push(new THREE.Vector3(5, 0, 0));
+                var line = new THREE.Line(geometry, material);
+                line.position.y = that.origin[i];
+                animator.scene.add(line);
+                that.lineMesh.push(line);
             }
             
             if (callback) {
@@ -47,17 +57,43 @@ World.prototype = {
     move: function(index, x) {
         var scaleY = (this.springHeight - x) / this.springHeight;
         var scaleXZ = 1 / Math.sqrt(scaleY);
-        this.springMesh[index].scale.set(scaleXZ, scaleY, scaleXZ);
+        if (x < this.springHeight) {
+            this.springMesh[index].scale.set(scaleXZ, scaleY, scaleXZ);
+        }
         
         this.origin[index] = -this.springHeight + x;
         this.balls[index].mesh.position.y = this.origin[index];
+        this.lineMesh[index].position.y = this.origin[index];
+    },
+    
+    setHelpLines: function() {
+        var material = new THREE.LineBasicMaterial({
+            color: 0x666666
+        });
+        
+        // original position
+        if (this.lineHelpMesh[0]) {
+            animator.scene.remove(this.lineHelpMesh[0]);
+        } 
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(new THREE.Vector3(
+                -5, -this.springHeight, 0));
+        geometry.vertices.push(new THREE.Vector3(5, -this.springHeight, 0));
+        this.lineHelpMesh[0] = new THREE.Line(geometry, material);
+        animator.scene.add(this.lineHelpMesh[0]);
+        
+        // farthest position
+        if (this.lineHelpMesh[1]) {
+            animator.scene.remove(this.lineHelpMesh[1]);
+        }
+        this.lineHelpMesh[1] = new THREE.Line(geometry, material);
+        animator.scene.add(this.lineHelpMesh[1]);
     },
     
     start: function() {
-        for (var i = 0; i < this.springMesh.length; ++i) {
-            //this.move(i, this.springFarthest);
-        }
-        this.isMoving = true;
+        this.reset();
+        
+        this.isPaused = false;
     },
     
     reset: function() {
@@ -68,17 +104,22 @@ World.prototype = {
             this.balls[i].v = 0;
             this.balls[i].s = 0;
         }
-        this.isMoving = false;
+        this.setHelpLines();
+        this.isPaused = true;
     },
     
     update: function() {
-        if (this.isMoving) {
+        if (!this.isPaused) {
             for (var i = 0; i < this.springMesh.length; ++i) {
                 this.balls[i].next(i);
                 this.move(i, this.balls[i].s);
             }
         }
     },
+    
+    pause: function() {
+        this.isPaused = !this.isPaused;
+    }
 }
 
 function Ball(springX, origin, color) {
@@ -124,24 +165,28 @@ Ball.prototype = {
         } else if (algorithm === 2) {
             // forth-order runge-kutta
             var s1 = this.v * dt;
-            var a1 = -k * s1 - g;
+            var a1 = -k * this.s - g;
             var v1 = a1 * dt;
             
             var s2 = (this.v + v1 / 2) * dt;
-            var a2 = -k * s2 - g;
+            var a2 = -k * (this.s + s1 / 2) - g;
             var v2 = a2 * dt;
             
             var s3 = (this.v + v2 / 2) * dt;
-            var a3 = -k * s3 - g;
+            var a3 = -k * (this.s + s2 / 2) - g;
             var v3 = a3 * dt;
             
-            var s4 = (this.v + s3) * dt;
-            var a4 = -k * s4 - g;
+            var s4 = (this.v + v3) * dt;
+            var a4 = -k * (this.s + s3) - g;
             var v4 = a4 * dt;
             
             this.s = this.s + (s1 + s4) / 6 + (s2 + s3) / 3;
             this.v = this.v + (v1 + v4) / 6 + (v2 + v3) / 3;
             this.a = -k * this.s - g;
+            
+            if (this.s < animator.world.lineHelpMesh[1].position.y) {
+                animator.world.lineHelpMesh[1].position.y = this.s;
+            }
         }
     }
 }
