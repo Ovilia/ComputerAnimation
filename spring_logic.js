@@ -93,9 +93,18 @@ World.prototype = {
     },
     
     start: function() {
-        this.reset();
-        
+        var dt = animator.world.deltaTime / 1000;
+        for (var i = 0; i < this.springMesh.length; ++i) {
+            this.move(i, 0);
+            this.balls[i].a = -9.8 * dt;
+            this.balls[i].v = 0;
+            this.balls[i].s = 0;
+            this.balls[i].firstRound = true;
+        }
+        this.setHelpLines();
+        this.frameCnt = 0;
         this.isPaused = false;
+        cnt = 0;
     },
     
     reset: function() {
@@ -106,6 +115,7 @@ World.prototype = {
             this.balls[i].a = -9.8 * dt;
             this.balls[i].v = 0;
             this.balls[i].s = 0;
+            this.balls[i].firstRound = true;
         }
         this.setHelpLines();
         this.frameCnt = 0;
@@ -134,6 +144,8 @@ function Ball(springX, origin, color) {
     this.a = 0;
     this.v = 0;
     this.s = 0;
+    
+    this.firstRound = true;
     
     this.material = new THREE.MeshLambertMaterial({
         color: color
@@ -192,8 +204,11 @@ Ball.prototype = {
             this.v = this.v + (v1 + v4) / 6 + (v2 + v3) / 3;
             this.a = -k * this.s - g;
             
-            if (this.s < animator.world.lineHelpMesh[1].position.y) {
+            if (this.s < animator.world.lineHelpMesh[1].position.y
+                    && this.firstRound) {
                 animator.world.lineHelpMesh[1].position.y = this.s;
+            } else {
+                this.firstRound = false;
             }
         }
     }
