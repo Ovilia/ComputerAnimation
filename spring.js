@@ -26,6 +26,13 @@ var animator = {
 }
 
 $(document).ready(function() {
+    if (!window.WebGLRenderingContext) {
+        // no webgl enabled
+        return;
+    }
+    $('#legend').show();
+    $('#no_webgl').hide();
+    
     $(window).resize(resize);
     resize();
     

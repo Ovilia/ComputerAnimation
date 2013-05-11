@@ -20,10 +20,12 @@ canvas {
     border-radius: 5px;
     
     opacity: 0.4;
+    display: none;
 }
 
 #legend:hover {
     opacity: 1.0;
+    box-shadow: 0 0 5px 2px #999;
 }
 
 .euler {

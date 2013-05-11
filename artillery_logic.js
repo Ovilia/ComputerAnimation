@@ -456,6 +456,7 @@ Projectile.prototype = {
                 this.v.x = this.v.y = this.v.z = 0;
             }
         }
+        
         this.mesh.position.set(this.origin.x + this.s.x,
                 this.origin.y + this.s.y, this.origin.z + this.s.z);
         this.trackNow();
