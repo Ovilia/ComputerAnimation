@@ -80,6 +80,7 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
+        'Delta time (ms)': 20,
         'Mass (kg)': 5,
         'Elastic k (kg/s^2)': 15,
         
@@ -93,6 +94,10 @@ function init() {
             animator.world.pause();
         }
     };
+    animator.gui.add(animator.guiValue, 'Delta time (ms)', 20, 250)
+            .step(0.5).onChange(function(value) {
+        animator.world.deltaTime = value;
+    });
     animator.gui.add(animator.guiValue, 'Mass (kg)', 0.5, 20)
             .step(0.5).onChange(function(value) {
         animator.world.mass = value;

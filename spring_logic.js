@@ -15,6 +15,8 @@ function World() {
     this.lineHelpMesh = [];
     
     this.isPaused = true;
+    this.frameCnt = 0;
+    this.deltaTime = 20;
 }
 
 World.prototype = {
@@ -97,7 +99,8 @@ World.prototype = {
     },
     
     reset: function() {
-        var dt = animator.renderDeltaTime / 1000;
+        animator.gui.revert(animator.guiValue);
+        var dt = animator.world.deltaTime / 1000;
         for (var i = 0; i < this.springMesh.length; ++i) {
             this.move(i, 0);
             this.balls[i].a = -9.8 * dt;
@@ -105,14 +108,19 @@ World.prototype = {
             this.balls[i].s = 0;
         }
         this.setHelpLines();
+        this.frameCnt = 0;
         this.isPaused = true;
     },
     
     update: function() {
         if (!this.isPaused) {
-            for (var i = 0; i < this.springMesh.length; ++i) {
-                this.balls[i].next(i);
-                this.move(i, this.balls[i].s);
+            this.frameCnt += 1;
+            if (this.frameCnt >= this.deltaTime / animator.renderDeltaTime) {
+                this.frameCnt = 0;
+                for (var i = 0; i < this.springMesh.length; ++i) {
+                    this.balls[i].next(i);
+                    this.move(i, this.balls[i].s);
+                }
             }
         }
     },
@@ -139,7 +147,7 @@ function Ball(springX, origin, color) {
 
 Ball.prototype = {    
     next: function(algorithm) {
-        var dt = animator.renderDeltaTime / 1000;
+        var dt = animator.world.deltaTime / 1000;
         var k = animator.world.elasticK * dt;
         var g = 9.8 * dt;
         
