@@ -16,7 +16,7 @@ function World() {
     
     this.isPaused = true;
     this.frameCnt = 0;
-    this.deltaTime = 50;
+    this.deltaTime = 20;
 }
 
 World.prototype = {

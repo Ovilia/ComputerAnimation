@@ -80,7 +80,7 @@ function init() {
     // GUI
     animator.gui = new dat.GUI();
     animator.guiValue = {
-        'Delta time (ms)': 50,
+        'Delta time (ms)': 20,
         'Mass (kg)': 5,
         'Elastic k (kg/s^2)': 15,
         
