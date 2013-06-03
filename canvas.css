@@ -1,0 +1,16 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    background-color: #ddd;
+}
+
+canvas {
+    background-color: #ccc;
+    width: 800px;
+    height: 600px;
+    display: block;
+    margin: 50px auto;
+}

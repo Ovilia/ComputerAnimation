@@ -89,7 +89,7 @@ function ParticleSystem(n, m) {
     this.n = n;
     this.t = 0;
     
-    this.particles = new Array[n];
+    this.particles = new Array(n);
     for (var i = 0; i < n; ++i) {
         this.particles[i] = new Particle(m[i]);
     }
@@ -106,7 +106,7 @@ Solver.prototype = {
     clearForce: function() {
         var particles = this.particleSystem.particles;
         for (var i = 0; i < particles.length; ++i) {
-            particles[i].f = 0;
+            particles[i].f = new Vec3();
         }
     },
     
@@ -128,21 +128,21 @@ Solver.prototype = {
 
 
 function EulerSolver(particleSystem, deltaT, computeForces) {
-    this.prototype = new Solver(particleSystem, computeForces);
+    this.parent = new Solver(particleSystem, computeForces);
     
-    this.prototype.update = function() {
-        var length = particleSystem.n;
-        var dstV = new Array[length];
-        var dstA = new Array[length];
+    this.update = function() {
+        var length = this.parent.particleSystem.n;
+        var dstV = new Array(length);
+        var dstA = new Array(length);
         
-        particleDerivative(dstV, dstA);
+        this.parent.particleDerivative(dstV, dstA);
         
         for (var i = 0; i < length; ++i) {
-            var p = particleSystem.particles[i];
+            var p = this.parent.particleSystem.particles[i];
             p.s.add(dstV[i].multiply(deltaT));
             p.v.add(dstA[i].multiply(deltaT));
         }
         
-        particleSystem.t += deltaT;
+        this.parent.particleSystem.t += deltaT;
     }
 }
