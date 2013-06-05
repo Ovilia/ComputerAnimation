@@ -81,12 +81,12 @@ $(document).ready(function() {
             animator.isMiddleMouse = true;
         }
         
-    }).mouseup(function() {
+    }).mouseup(function(event) {
         event.preventDefault();
         
         animator.mousePressed = false;
         
-    }).bind('mousewheel', function(e){
+    }).bind('mousewheel', function(event){
         event.preventDefault();
         
         if (e.originalEvent.wheelDelta > 0) {

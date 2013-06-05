@@ -13,14 +13,16 @@ var bd = {
     isFirstFrame: true,
     isMoving: false,
     
+    mousePressed: false,
+    
     width: 800,
     height: 600,
     
     wireRadius: 200,
     beadRadius: 20,
     
-    eventWidth: 300,
-    eventHeight: 250,
+    eventWidth: 400,
+    eventHeight: 300,
     
     ctx: null,
     
@@ -32,11 +34,28 @@ function init() {
     window.onresize = resize;
     
     // mouse event
-    canvas.onclick = function() {
+    var canvas = document.getElementById('canvas');
+    canvas.onmousedown = function(e) {
+        e.preventDefault();
+        bd.mousePressed = true;
+    }
+    canvas.onmouseup = function(e) {
+        e.preventDefault();
+        bd.mousePressed = false;
+        
         if (bd.isMoving === false) {
             start();
         }
-    };
+    }
+    canvas.onmousemove = function(e) {
+        e.preventDefault();
+        if (bd.mousePressed && e.clientX < bd.eventWidth
+                && e.clientY > bd.height - bd.eventHeight) {
+            var x = e.clientX - bd.eventWidth / 2;
+            var y = bd.height - bd.eventHeight / 2 - e.clientY;
+            console.log(x, y);
+        }
+    }
     
     // status
     bd.stats = new Stats();
@@ -131,9 +150,25 @@ function draw() {
     }
     
     function drawEvent() {
-        bd.ctx.fillStyle = '#ccc';
+        // background
+        bd.ctx.fillStyle = '#aaa';
         bd.ctx.fillRect(0, bd.height - bd.eventHeight,
                 bd.eventWidth, bd.eventHeight);
+        
+        // wire
+        bd.ctx.strokeStyle = '#f00';
+        bd.ctx.beginPath();
+        bd.ctx.arc(bd.eventWidth / 2, bd.height - bd.eventHeight / 2
+                + bd.wireRadius, bd.wireRadius, 0, Math.PI * 2);
+        bd.ctx.lineWidth = 10;
+        bd.ctx.stroke();
+        
+        // bead
+        bd.ctx.fillStyle = '#ff0';
+        bd.ctx.beginPath();
+        bd.ctx.arc(bd.eventWidth / 2, bd.height - bd.eventHeight / 2,
+                bd.beadRadius, 0, Math.PI * 2);
+        bd.ctx.fill();
     }
 }
 
