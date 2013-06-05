@@ -3,9 +3,15 @@ var bd = {
     system: null,
     solver: null,
     
-    renderDeltaTime: 20,
+    renderDeltaTime: 16,
     
-    distanceRatio: 0.0001,
+    distanceRatio: 1,
+    frictionRatio: 0.5,
+    springK: 50,
+    epson: 0.2,
+    
+    isFirstFrame: true,
+    isMoving: false,
     
     width: 800,
     height: 600,
@@ -13,12 +19,25 @@ var bd = {
     wireRadius: 200,
     beadRadius: 20,
     
+    eventWidth: 300,
+    eventHeight: 250,
+    
     ctx: null,
     
     stats: null
 };
 
 function init() {
+    resize();
+    window.onresize = resize;
+    
+    // mouse event
+    canvas.onclick = function() {
+        if (bd.isMoving === false) {
+            start();
+        }
+    };
+    
     // status
     bd.stats = new Stats();
     bd.stats.domElement.style.position = 'absolute';
@@ -28,15 +47,41 @@ function init() {
     
     // particle system and solver
     bd.system = new ParticleSystem(1, [bd.beadMass]);
-    bd.system.particles[0].s.x = bd.wireRadius;
-    bd.solver = new EulerSolver(bd.system, bd.renderDeltaTime, computeForce);
+    bd.system.particles[0].s.x = 1;
+    bd.solver = new MidPointSolver(bd.system, bd.renderDeltaTime / 1000,
+            computeForce);
     
-    bd.ctx = document.getElementById('canvas').getContext('2d');
-    start();
+    bd.ctx = canvas.getContext('2d');
+    draw();
+}
+
+function resize() {
+    // canvas size
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var canvas = document.getElementById('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    bd.width = width;
+    bd.height = height;
 }
 
 function start() {    
-    draw();
+    bd.system.particles[0].s.set(1, 0, 0);
+    bd.system.particles[0].f.set(0, 0, 0);
+    bd.system.particles[0].v.set(0, 0, 0);
+    
+    bd.isMoving = true;
+    console.log('start');
+}
+
+function stop() {
+    bd.system.particles[0].s.set(0, -1, 0);
+    bd.system.particles[0].f.set(0, 0, 0);
+    bd.system.particles[0].v.set(0, 0, 0);
+    
+    bd.isMoving = false;
+    console.log('stop');
 }
 
 function draw() {
@@ -44,28 +89,51 @@ function draw() {
     
     bd.solver.update();
     
-    bd.ctx.clearRect(0, 0, bd.width, bd.height);
-    drawWire();
-    drawBead();
+    if (bd.isMoving || bd.isFirstFrame) {
+        bd.ctx.clearRect(0, 0, bd.width, bd.height);
+        drawWire();
+        drawBead();
+        drawEvent();
+        
+        if (bd.isFirstFrame) {
+            bd.isFirstFrame = false;
+        }
+    }
     
     bd.stats.end();
     
     setTimeout(draw, bd.renderDeltaTime);
     
     function drawWire() {
+        bd.ctx.strokeStyle = '#f00';
         bd.ctx.beginPath();
         bd.ctx.arc(bd.width / 2, bd.height / 2, bd.wireRadius,
                 0, Math.PI * 2);
+        bd.ctx.lineWidth = 10;
         bd.ctx.stroke();
     }
     
-    function drawBead() {    
+    function drawBead() {
         var s = bd.system.particles[0].s;
+        s.normalize();
+        // check stopped
+        if (bd.system.particles[0].f.modulus() < bd.epson
+                && bd.system.particles[0].v.modulus() < bd.epson) {
+            stop();
+        }
     
+        bd.ctx.fillStyle = '#ff0';
         bd.ctx.beginPath();
-        bd.ctx.arc(bd.width / 2 + s.x, bd.height / 2 - s.y,
+        bd.ctx.arc(bd.width / 2 + s.x * bd.wireRadius,
+                bd.height / 2 - s.y * bd.wireRadius,
                 bd.beadRadius, 0, Math.PI * 2);
-        bd.ctx.stroke();
+        bd.ctx.fill();
+    }
+    
+    function drawEvent() {
+        bd.ctx.fillStyle = '#ccc';
+        bd.ctx.fillRect(0, bd.height - bd.eventHeight,
+                bd.eventWidth, bd.eventHeight);
     }
 }
 
@@ -76,13 +144,26 @@ function computeForce() {
         alpha += Math.PI;
     }
     
+    // gravity
     var sin = Math.sin(alpha);
     var cos = Math.cos(alpha);
-    p.f.x = cos * sin * bd.beadMass * bd.distanceRatio;
-    p.f.y = (sin * sin - 1) * bd.beadMass * bd.distanceRatio;
-    //console.log(p.f.x, p.f.y);
+    //p.f.x = cos * sin * bd.beadMass * bd.distanceRatio;
+    //p.f.y = (sin * sin - 1) * bd.beadMass * bd.distanceRatio;
+    p.f.y = -bd.beadMass * 9.8 * bd.distanceRatio;
     
-    var lambda = - bd.beadMass * p.v.dotMultiply(p.v) / p.s.dotMultiply(p.s);
-    p.f.x += lambda * p.s.x;
-    p.f.y += lambda * p.s.y;
+    // friction
+    p.f.minus(p.v.copy().multiply(bd.frictionRatio));
+    
+    // constrain
+    var lambda = - p.f.dotMultiply(p.s)
+            - bd.beadMass * p.v.dotMultiply(p.v) / p.s.dotMultiply(p.s);
+    p.f.add(p.s.copy().multiply(lambda));
+    //console.log('contrain', p.s.copy().multiply(lambda).y * 100000);
+    
+    // feedback
+    //console.log(p.s.modulus());
+    //console.log(real.x, real.y);
+    var real = p.s.copy().divide(p.s.modulus());
+    p.f.add(real.minus(p.s).multiply(bd.springK));
+    //console.log('feedback', real.minus(p.s).multiply(bd.springK).y * 100000);
 }

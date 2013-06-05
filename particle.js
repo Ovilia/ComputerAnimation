@@ -17,6 +17,12 @@ function Vec3(x, y, z) {
 }
 
 Vec3.prototype = {
+    set: function(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    },
+    
     add: function(vec) {
         this.x += vec.x;
         this.y += vec.y;
@@ -50,7 +56,12 @@ Vec3.prototype = {
     },
     
     modulus: function() {
-        return Math.sqrt(this.x * this.x + this.y + this.y + this.z * this.z);
+        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+    },
+    
+    normalize: function() {
+        var modulus = this.modulus();
+        return this.divide(modulus);
     },
     
     copy: function() {
@@ -141,6 +152,27 @@ function EulerSolver(particleSystem, deltaT, computeForces) {
             var p = this.parent.particleSystem.particles[i];
             p.s.add(dstV[i].multiply(deltaT));
             p.v.add(dstA[i].multiply(deltaT));
+        }
+        
+        this.parent.particleSystem.t += deltaT;
+    }
+}
+
+function MidPointSolver(particleSystem, deltaT, computeForces) {
+    this.parent = new Solver(particleSystem, computeForces);
+    
+    this.update = function() {
+        var length = this.parent.particleSystem.n;
+        var dstV = new Array(length);
+        var dstA = new Array(length);
+        
+        this.parent.particleDerivative(dstV, dstA);
+        
+        for (var i = 0; i < length; ++i) {
+            var p = this.parent.particleSystem.particles[i];
+            p.v.add(dstA[i].multiply(deltaT));
+            var vMid = dstV[i].add(p.v).multiply(0.5);
+            p.s.add(vMid.multiply(deltaT));
         }
         
         this.parent.particleSystem.t += deltaT;
