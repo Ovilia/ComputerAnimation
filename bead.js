@@ -5,6 +5,8 @@ var bd = {
     
     renderDeltaTime: 20,
     
+    distanceRatio: 0.0001,
+    
     width: 800,
     height: 600,
     
@@ -27,7 +29,7 @@ function init() {
     // particle system and solver
     bd.system = new ParticleSystem(1, [bd.beadMass]);
     bd.system.particles[0].s.x = bd.wireRadius;
-    bd.solver = new EulerSolver(bd.system, bd.renderDeltaTime, function(){});
+    bd.solver = new EulerSolver(bd.system, bd.renderDeltaTime, computeForce);
     
     bd.ctx = document.getElementById('canvas').getContext('2d');
     start();
@@ -44,7 +46,7 @@ function draw() {
     
     bd.ctx.clearRect(0, 0, bd.width, bd.height);
     drawWire();
-    drawBead()
+    drawBead();
     
     bd.stats.end();
     
@@ -61,8 +63,26 @@ function draw() {
         var s = bd.system.particles[0].s;
     
         bd.ctx.beginPath();
-        bd.ctx.arc(bd.width / 2 + s.x, bd.height / 2 + s.y,
+        bd.ctx.arc(bd.width / 2 + s.x, bd.height / 2 - s.y,
                 bd.beadRadius, 0, Math.PI * 2);
         bd.ctx.stroke();
     }
+}
+
+function computeForce() {
+    var p = bd.system.particles[0];
+    var alpha = Math.atan(p.s.y / p.s.x);
+    if (p.s.x < 0) {
+        alpha += Math.PI;
+    }
+    
+    var sin = Math.sin(alpha);
+    var cos = Math.cos(alpha);
+    p.f.x = cos * sin * bd.beadMass * bd.distanceRatio;
+    p.f.y = (sin * sin - 1) * bd.beadMass * bd.distanceRatio;
+    //console.log(p.f.x, p.f.y);
+    
+    var lambda = - bd.beadMass * p.v.dotMultiply(p.v) / p.s.dotMultiply(p.s);
+    p.f.x += lambda * p.s.x;
+    p.f.y += lambda * p.s.y;
 }
