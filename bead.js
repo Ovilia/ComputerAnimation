@@ -6,14 +6,17 @@ var bd = {
     renderDeltaTime: 16,
     
     distanceRatio: 1,
-    frictionRatio: 0.5,
-    springK: 50,
+    frictionRatio: 0.2,
+    springK: 150,
     epson: 0.2,
+    dragRatio: 0.1,
     
     isFirstFrame: true,
     isMoving: false,
     
     mousePressed: false,
+    eventX: 0,
+    eventY: 0,
     
     width: 800,
     height: 600,
@@ -38,6 +41,12 @@ function init() {
     canvas.onmousedown = function(e) {
         e.preventDefault();
         bd.mousePressed = true;
+        
+        if (bd.mousePressed && e.clientX < bd.eventWidth
+                && e.clientY > bd.height - bd.eventHeight) {
+            bd.eventX = e.clientX - bd.eventWidth / 2;
+            bd.eventY = bd.height - bd.eventHeight / 2 - e.clientY;
+        }
     }
     canvas.onmouseup = function(e) {
         e.preventDefault();
@@ -51,9 +60,8 @@ function init() {
         e.preventDefault();
         if (bd.mousePressed && e.clientX < bd.eventWidth
                 && e.clientY > bd.height - bd.eventHeight) {
-            var x = e.clientX - bd.eventWidth / 2;
-            var y = bd.height - bd.eventHeight / 2 - e.clientY;
-            console.log(x, y);
+            bd.eventX = e.clientX - bd.eventWidth / 2;
+            bd.eventY = bd.height - bd.eventHeight / 2 - e.clientY;
         }
     }
     
@@ -106,13 +114,16 @@ function stop() {
 function draw() {
     bd.stats.begin();
     
-    bd.solver.update();
+    if (bd.isMoving || bd.isFirstFrame) {  
+        bd.solver.update();
     
-    if (bd.isMoving || bd.isFirstFrame) {
         bd.ctx.clearRect(0, 0, bd.width, bd.height);
         drawWire();
         drawBead();
         drawEvent();
+        if (bd.mousePressed) {
+            drawForce();
+        }
         
         if (bd.isFirstFrame) {
             bd.isFirstFrame = false;
@@ -134,12 +145,12 @@ function draw() {
     
     function drawBead() {
         var s = bd.system.particles[0].s;
-        s.normalize();
+        
         // check stopped
-        if (bd.system.particles[0].f.modulus() < bd.epson
-                && bd.system.particles[0].v.modulus() < bd.epson) {
-            stop();
-        }
+        //if (bd.system.particles[0].f.modulus() < bd.epson
+        //        && bd.system.particles[0].v.modulus() < bd.epson) {
+        //    stop();
+        //}
     
         bd.ctx.fillStyle = '#ff0';
         bd.ctx.beginPath();
@@ -149,7 +160,25 @@ function draw() {
         bd.ctx.fill();
     }
     
+    function drawForce() {
+        var force = getDragForce();
+        var s = bd.system.particles[0].s;
+        force.add(s.copy().multiply(bd.wireRadius));
+        
+        bd.ctx.strokeStyle = '#0f0';
+        bd.ctx.lineWidth = 3;
+        bd.ctx.beginPath();
+        bd.ctx.moveTo(bd.width / 2 + s.x * bd.wireRadius,
+                bd.height / 2 - s.y * bd.wireRadius);
+        bd.ctx.lineTo(bd.width / 2 + force.x,
+                bd.height / 2 - force.y);
+        bd.ctx.stroke();
+    }
+    
     function drawEvent() {
+        var centerX = bd.eventWidth / 2;
+        var centerY = bd.height - bd.eventHeight / 2;
+        
         // background
         bd.ctx.fillStyle = '#aaa';
         bd.ctx.fillRect(0, bd.height - bd.eventHeight,
@@ -158,17 +187,26 @@ function draw() {
         // wire
         bd.ctx.strokeStyle = '#f00';
         bd.ctx.beginPath();
-        bd.ctx.arc(bd.eventWidth / 2, bd.height - bd.eventHeight / 2
-                + bd.wireRadius, bd.wireRadius, 0, Math.PI * 2);
+        bd.ctx.arc(centerX, centerY + bd.wireRadius,
+                bd.wireRadius, 0, Math.PI * 2);
         bd.ctx.lineWidth = 10;
         bd.ctx.stroke();
         
         // bead
         bd.ctx.fillStyle = '#ff0';
         bd.ctx.beginPath();
-        bd.ctx.arc(bd.eventWidth / 2, bd.height - bd.eventHeight / 2,
-                bd.beadRadius, 0, Math.PI * 2);
+        bd.ctx.arc(centerX, centerY, bd.beadRadius, 0, Math.PI * 2);
         bd.ctx.fill();
+        
+        // force
+        if (bd.mousePressed) {
+            bd.ctx.strokeStyle = '#0f0';
+            bd.ctx.lineWidth = 3;
+            bd.ctx.beginPath();
+            bd.ctx.moveTo(centerX, centerY);
+            bd.ctx.lineTo(centerX + bd.eventX, centerY - bd.eventY);
+            bd.ctx.stroke();
+        }
     }
 }
 
@@ -182,9 +220,11 @@ function computeForce() {
     // gravity
     var sin = Math.sin(alpha);
     var cos = Math.cos(alpha);
-    //p.f.x = cos * sin * bd.beadMass * bd.distanceRatio;
-    //p.f.y = (sin * sin - 1) * bd.beadMass * bd.distanceRatio;
     p.f.y = -bd.beadMass * 9.8 * bd.distanceRatio;
+    
+    // drag
+    var force = getDragForce().multiply(bd.dragRatio);
+    p.f.add(force);
     
     // friction
     p.f.minus(p.v.copy().multiply(bd.frictionRatio));
@@ -193,12 +233,30 @@ function computeForce() {
     var lambda = - p.f.dotMultiply(p.s)
             - bd.beadMass * p.v.dotMultiply(p.v) / p.s.dotMultiply(p.s);
     p.f.add(p.s.copy().multiply(lambda));
-    //console.log('contrain', p.s.copy().multiply(lambda).y * 100000);
     
     // feedback
-    //console.log(p.s.modulus());
-    //console.log(real.x, real.y);
     var real = p.s.copy().divide(p.s.modulus());
     p.f.add(real.minus(p.s).multiply(bd.springK));
-    //console.log('feedback', real.minus(p.s).multiply(bd.springK).y * 100000);
+}
+
+function getDragForce() {
+    if (bd.mousePressed === false) {
+        // no force
+        return new Vec3();
+    }
+    
+    var s = bd.system.particles[0].s;
+    var alpha = Math.atan(s.y / s.x);
+    if (s.x < 0) {
+        alpha += Math.PI;
+    }
+    
+    var beta = Math.atan(bd.eventX / bd.eventY);
+    if (bd.eventY < 0) {
+        beta += Math.PI;
+    }
+    
+    var theta = alpha - beta;
+    var length = Math.sqrt(bd.eventX * bd.eventX + bd.eventY * bd.eventY);
+    return new Vec3(length * Math.cos(theta), length * Math.sin(theta), 0);
 }

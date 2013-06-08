@@ -163,16 +163,24 @@ function MidPointSolver(particleSystem, deltaT, computeForces) {
     
     this.update = function() {
         var length = this.parent.particleSystem.n;
-        var dstV = new Array(length);
-        var dstA = new Array(length);
         
+        var dstV = new Array(length);
+        var dstA = new Array(length);        
         this.parent.particleDerivative(dstV, dstA);
         
         for (var i = 0; i < length; ++i) {
             var p = this.parent.particleSystem.particles[i];
-            p.v.add(dstA[i].multiply(deltaT));
-            var vMid = dstV[i].add(p.v).multiply(0.5);
-            p.s.add(vMid.multiply(deltaT));
+            p.v.add(dstA[i].multiply(deltaT * 0.5)); // mid v
+        }
+        
+        var dstV2 = new Array(length);
+        var dstA2 = new Array(length);
+        this.parent.particleDerivative(dstV2, dstA2);
+        
+        for (var i = 0; i < length; ++i) {
+            var p = this.parent.particleSystem.particles[i];
+            p.s.add(dstV2[i].multiply(deltaT));
+            p.v.add(dstA[i].multiply(deltaT * 0.5)); // vt
         }
         
         this.parent.particleSystem.t += deltaT;
