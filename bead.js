@@ -7,7 +7,7 @@ var bd = {
     
     distanceRatio: 1,
     frictionRatio: 0.2,
-    springK: 150,
+    springK: 1000,
     epson: 0.2,
     dragRatio: 0.1,
     
@@ -15,6 +15,7 @@ var bd = {
     isMoving: false,
     
     mousePressed: false,
+    mousePressedEvent: false,
     eventX: 0,
     eventY: 0,
     
@@ -41,16 +42,12 @@ function init() {
     canvas.onmousedown = function(e) {
         e.preventDefault();
         bd.mousePressed = true;
-        
-        if (bd.mousePressed && e.clientX < bd.eventWidth
-                && e.clientY > bd.height - bd.eventHeight) {
-            bd.eventX = e.clientX - bd.eventWidth / 2;
-            bd.eventY = bd.height - bd.eventHeight / 2 - e.clientY;
-        }
+        updateEventXy(e);
     }
     canvas.onmouseup = function(e) {
         e.preventDefault();
         bd.mousePressed = false;
+        bd.mousePressedEvent = false;
         
         if (bd.isMoving === false) {
             start();
@@ -58,11 +55,7 @@ function init() {
     }
     canvas.onmousemove = function(e) {
         e.preventDefault();
-        if (bd.mousePressed && e.clientX < bd.eventWidth
-                && e.clientY > bd.height - bd.eventHeight) {
-            bd.eventX = e.clientX - bd.eventWidth / 2;
-            bd.eventY = bd.height - bd.eventHeight / 2 - e.clientY;
-        }
+        updateEventXy(e);
     }
     
     // status
@@ -91,6 +84,17 @@ function resize() {
     canvas.height = height;
     bd.width = width;
     bd.height = height;
+}
+
+function updateEventXy(event) {
+    if (bd.mousePressed) {
+        if (event.clientX < bd.eventWidth
+                && event.clientY > bd.height - bd.eventHeight) {
+            bd.eventX = event.clientX - bd.eventWidth / 2;
+            bd.eventY = bd.height - bd.eventHeight / 2 - event.clientY;
+            bd.mousePressedEvent = true;
+        }
+    }
 }
 
 function start() {    
@@ -236,11 +240,11 @@ function computeForce() {
     
     // feedback
     var real = p.s.copy().divide(p.s.modulus());
-    p.f.add(real.minus(p.s).multiply(bd.springK));
+    p.f.add(real.minus(p.s).multiply(bd.springK * p.v.modulus()));
 }
 
 function getDragForce() {
-    if (bd.mousePressed === false) {
+    if (bd.mousePressedEvent === false) {
         // no force
         return new Vec3();
     }
