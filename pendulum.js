@@ -1,13 +1,14 @@
 var pd = {
     width: 800,
     height: 600,
-    yOffset: 200,
-    displayRatio: 20,
-    ballRadius: 20,
+    yOffset: 250,
+    displayRatio: 10,
+    ballRadius: 12,
+    forceScreenRatio: 0.2,
     
-    minX: -20,
+    minX: -50,
     xCnt: 50,
-    parabolaA: 0.1,
+    parabolaA: 0.05,
     ks: 100,
     kd: 100,
     
@@ -21,7 +22,12 @@ var pd = {
     ctx: null,
     
     stats: null,
-    renderDeltaTime: 16
+    renderDeltaTime: 16,
+    
+    leftMousePressed: false,
+    rightMousePressed: false,
+    mouseX: null,
+    mouseY: null
 };
 
 function init() {
@@ -43,6 +49,48 @@ function init() {
     
     var canvas = document.getElementById('canvas');
     pd.ctx = canvas.getContext('2d');
+    
+    // event
+    canvas.onmousedown = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        switch (e.which) {
+            case 1:
+                pd.leftMousePressed = true;
+                break;
+            case 3:
+                pd.rightMousePressed = true;
+                break;
+        }
+        pd.mouseX = e.clientX;
+        pd.mouseY = e.clientY;
+        return false;
+    }
+    canvas.onmouseup = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        pd.leftMousePressed = false;
+        pd.rightMousePressed = false;
+        pd.mouseX = null;
+        pd.mouseY = null;
+        return false;
+    }
+    canvas.onmousemove = function(e) {
+        e.preventDefault();
+        if (pd.leftMousePressed || pd.rightMousePressed) {
+            pd.mouseX = e.clientX;
+            pd.mouseY = e.clientY;
+        } else {
+            pd.mouseX = null;
+            pd.mouseY = null;
+        }
+        return false;
+    }
+    canvas.oncontextmenu = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }
     
     // matrix init
     pd.wMat = new Matrix(6, 6, [
@@ -85,13 +133,14 @@ function draw() {
     drawBall(0);
     drawBall(1);
     drawStick();
+    drawEvent();
     
     pd.stats.end();
     
     setTimeout(draw, pd.renderDeltaTime);
     
     function drawParabola() {
-        pd.ctx.strokeStyle = '#00f';
+        pd.ctx.strokeStyle = '#f00';
         pd.ctx.lineWidth = 1;
         pd.ctx.beginPath();
         pd.ctx.moveTo(getScreenX(pd.minX),
@@ -115,8 +164,8 @@ function draw() {
     }
     
     function drawStick() {
-        pd.ctx.strokeStyle = '#0f0';
-        pd.ctx.lineWidth = 5;
+        pd.ctx.strokeStyle = '#333';
+        pd.ctx.lineWidth = 2;
         pd.ctx.beginPath();
         pd.ctx.moveTo(getScreenX(pd.system.particles[0].s.x),
                 getScreenY(pd.system.particles[0].s.y));
@@ -124,17 +173,42 @@ function draw() {
                 getScreenY(pd.system.particles[1].s.y));
         pd.ctx.stroke();
     }
+    
+    function drawEvent() {
+        pd.ctx.strokeStyle = '#0f0';
+        pd.ctx.lineWidth = 2;
+        if (pd.leftMousePressed) {
+            pd.ctx.beginPath();
+            pd.ctx.moveTo(getScreenX(pd.system.particles[0].s.x),
+                    getScreenY(pd.system.particles[0].s.y));
+            pd.ctx.lineTo(pd.mouseX, pd.mouseY);
+            pd.ctx.stroke();
+        } else if (pd.rightMousePressed) {
+            pd.ctx.beginPath();
+            pd.ctx.moveTo(getScreenX(pd.system.particles[1].s.x),
+                    getScreenY(pd.system.particles[1].s.y));
+            pd.ctx.lineTo(pd.mouseX, pd.mouseY);
+            pd.ctx.stroke();
+        }
+    }
 }
 
 function computeForce() {
-    for (var i = 0; i < 2; ++i) {
-        var p = pd.system.particles[i];
-        // gravity
-        p.f.y = -pd.mass[i] * 9.8;
-    }
-    
     var p1 = pd.system.particles[0];
     var p2 = pd.system.particles[1];
+    
+    // gravity
+    p1.f.y = -pd.mass[0] * 9.8;
+    p2.f.y = -pd.mass[1] * 9.8;
+    
+    // mouse force
+    if (pd.leftMousePressed) {
+        p1.f.x -= (getScreenX(p1.s.x) - pd.mouseX) * pd.forceScreenRatio;
+        p1.f.y += (getScreenY(p1.s.y) - pd.mouseY) * pd.forceScreenRatio;
+    } else if (pd.rightMousePressed) {
+        p2.f.x -= (getScreenX(p2.s.x) - pd.mouseX) * pd.forceScreenRatio;
+        p2.f.y += (getScreenY(p2.s.y) - pd.mouseY) * pd.forceScreenRatio;
+    }
     
     var C = new Matrix(2, 1, [
         [pd.parabolaA * p1.s.x * p1.s.x - p1.s.y],
