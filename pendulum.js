@@ -11,6 +11,9 @@ var pd = {
     parabolaA: 0.05,
     ks: 100,
     kd: 100,
+    dampK: 0.1,
+    constrain: null,
+    constrainRatio: 0.2,
     
     system: null,
     solver: null,
@@ -134,6 +137,7 @@ function draw() {
     drawBall(1);
     drawStick();
     drawEvent();
+    drawConstrain();
     
     pd.stats.end();
     
@@ -164,8 +168,8 @@ function draw() {
     }
     
     function drawStick() {
-        pd.ctx.strokeStyle = '#333';
-        pd.ctx.lineWidth = 2;
+        pd.ctx.strokeStyle = '#f00';
+        pd.ctx.lineWidth = 1;
         pd.ctx.beginPath();
         pd.ctx.moveTo(getScreenX(pd.system.particles[0].s.x),
                 getScreenY(pd.system.particles[0].s.y));
@@ -191,6 +195,19 @@ function draw() {
             pd.ctx.stroke();
         }
     }
+    
+    function drawConstrain() {
+        pd.ctx.strokeStyle = '#00f';
+        for (var i = 0; i < 2; ++i) {
+            pd.ctx.beginPath();
+            pd.ctx.moveTo(getScreenX(pd.system.particles[i].s.x),
+                    getScreenY(pd.system.particles[i].s.y));
+            pd.ctx.lineTo(getScreenX(pd.system.particles[i].s.x
+                    + pd.constrain[i].x), getScreenY(pd.system.particles[i].s.y
+                    + pd.constrain[i].y));
+            pd.ctx.stroke();
+        }
+    }
 }
 
 function computeForce() {
@@ -200,6 +217,9 @@ function computeForce() {
     // gravity
     p1.f.y = -pd.mass[0] * 9.8;
     p2.f.y = -pd.mass[1] * 9.8;
+    
+    p1.f.minus(p1.v.copy().multiply(pd.dampK));
+    p2.f.minus(p2.v.copy().multiply(pd.dampK));
     
     // mouse force
     if (pd.leftMousePressed) {
@@ -261,9 +281,9 @@ function computeForce() {
     
     // constrained force
     var force = jtMat.multiply(lMat).add(Q);
-    p1.f.set(force.mat[0][0], force.mat[1][0], force.mat[2][0]);
-    p2.f.set(force.mat[3][0], force.mat[4][0], force.mat[5][0]);
-    //p1.f.add(new Vec3(force.mat[0][0], force.mat[1][0], force.mat[2][0]));
-    //p2.f.add(new Vec3(force.mat[3][0], force.mat[4][0], force.mat[5][0]));
-    //console.log(p1.v.x * p1.v.x + p1.v.y * p1.v.y + p2.v.x * p2.v.x + p2.v.y * p2.v.y);
+    p1.f.add(new Vec3(force.mat[0][0], force.mat[1][0], force.mat[2][0]));
+    p2.f.add(new Vec3(force.mat[3][0], force.mat[4][0], force.mat[5][0]));
+    
+    pd.constrain = [p1.f.copy().multiply(pd.constrainRatio),
+            p2.f.copy().multiply(pd.constrainRatio)];
 }
