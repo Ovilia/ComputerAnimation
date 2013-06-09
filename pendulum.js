@@ -14,6 +14,8 @@ var pd = {
     mass: [1, 1],
     stickLength: 1,
     
+    wMat: null,
+    
     ctx: null,
     
     stats: null,
@@ -33,12 +35,22 @@ function init() {
     
     // particle system and solver
     pd.system = new ParticleSystem(2, pd.mass);
-    pd.system.particles[1].s.y = -pd.stickLength;
+    pd.system.particles[0].s.set(5, pd.parabolaA * 25, 0);
+    pd.system.particles[1].s.set(5, pd.parabolaA * 25 - pd.stickLength, 0);
     pd.solver = new MidPointSolver(pd.system, pd.renderDeltaTime / 1000,
             computeForce);
     
     var canvas = document.getElementById('canvas');
     pd.ctx = canvas.getContext('2d');
+    
+    // matrix init
+    pd.wMat = new Matrix(6, 6, [
+            [1 / pd.mass[0], 0, 0, 0, 0, 0],
+            [0, 1 / pd.mass[0], 0, 0, 0, 0],
+            [0, 0, 1 / pd.mass[0], 0, 0, 0],
+            [0, 0, 0, 1 / pd.mass[1], 0, 0],
+            [0, 0, 0, 0, 1 / pd.mass[1], 0],
+            [0, 0, 0, 0, 0, 1 / pd.mass[1]]]);
     
     draw();
 }
@@ -65,6 +77,9 @@ function getScreenY(y) {
 function draw() {
     pd.stats.begin();
     
+    pd.solver.update();
+    
+    pd.ctx.clearRect(0, 0, pd.width, pd.height);
     drawParabola();
     drawBall(0);
     drawBall(1);
@@ -111,5 +126,61 @@ function draw() {
 }
 
 function computeForce() {
+    for (var i = 0; i < 2; ++i) {
+        var p = pd.system.particles[i];
+        // gravity
+        p.f.y = -pd.mass[i] * 9.8;
+    }
     
+    var p1 = pd.system.particles[0];
+    var p2 = pd.system.particles[1];
+    
+    var jMat = new Matrix(2, 6, [
+        [2 * pd.parabolaA * p1.s.x, -1, 0, 0, 0, 0],
+        [2 * (p1.s.x - p2.s.x), 2 * (p1.s.y - p2.s.y), 0,
+                -2 * (p1.s.x - p2.s.x), -2 * (p1.s.y - p2.s.y), 0]
+    ]);
+    var jtMat = jMat.transpose();
+    var jdMat = new Matrix(2, 6, [
+        [2 * pd.parabolaA * p1.v.x, 0, 0, 0, 0, 0],
+        [2 * (p1.v.x - p2.v.x), 2 * (p1.v.y - p2.v.y), 0,
+                -2 * (p1.v.x - p2.v.x), -2 * (p1.v.y - p2.v.y), 0]
+    ]);
+    var qd = new Matrix(6, 1, [
+        [p1.v.x],
+        [p1.v.y],
+        [p1.v.z],
+        [p2.v.x],
+        [p2.v.y],
+        [p2.v.z]
+    ]);
+    var Q = new Matrix(6, 1, [
+        [p1.f.x],
+        [p1.f.y],
+        [p1.f.z],
+        [p2.f.x],
+        [p2.f.y],
+        [p2.f.z]
+    ]);
+    
+    var jWjt = jMat.multiply(pd.wMat).multiply(jtMat);
+    var right = jdMat.multiply(qd).negative()
+            .minus(jMat.multiply(pd.wMat).multiply(Q));
+    
+    var a = jWjt.mat[0][0];
+    var b = jWjt.mat[0][1];
+    var c = jWjt.mat[1][0];
+    var d = jWjt.mat[1][1];
+    var e = right.mat[0][0];
+    var f = right.mat[1][0];
+    var lambda2 = (a * f - e * c) / (a * d - b * c);
+    var lambda1 = (e - b * lambda2) / a;
+    var lMat = new Matrix(2, 1, [[lambda1], [lambda2]]);
+    
+    // constrained force
+    var force = jtMat.multiply(lMat).add(Q);
+    p1.f.set(force.mat[0][0], force.mat[1][0], force.mat[2][0]);
+    p2.f.set(force.mat[3][0], force.mat[4][0], force.mat[5][0]);
+    //p1.f.add(new Vec3(force.mat[0][0], force.mat[1][0], force.mat[2][0]));
+    //p2.f.add(new Vec3(force.mat[3][0], force.mat[4][0], force.mat[5][0]));
 }

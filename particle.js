@@ -64,8 +64,122 @@ Vec3.prototype = {
         return this.divide(modulus);
     },
     
+    toMatrix: function(isColumn) {
+        if (isColumn) {
+            return new Matrix(3, 1, [[this.x], [this.y], [this.z]]);
+        } else {
+            return new Matrix(1, 3, [[this.x, this.y, this.z]]);
+        }
+    },
+    
     copy: function() {
         return new Vec3(this.x, this.y, this.z);
+    }
+};
+
+
+
+function Matrix(m, n, mat) {
+    this.mat = [];
+    this.m = m;
+    this.n = n;
+    
+    if (n > 0) {
+        if (mat) {
+            this.mat = mat;
+        } else {
+            this.mat = new Array(m);
+            for (var i = 0; i < m; ++i) {
+                this.mat[i] = new Array(n);
+                for (var j = 0; j < n; ++j) {
+                    this.mat[i][j] = 0;
+                }
+            }
+        }
+    } else {
+        console.error('Error when init matrix.');
+    }
+}
+
+Matrix.prototype = {
+    multiply: function(another) {
+        if (another && another.m === this.n) {
+            var mat = new Array(this.m);
+            for (var i = 0; i < this.m; ++i) {
+                mat[i] = new Array(another.n);
+                for (var j = 0; j < another.n; ++j) {
+                    var sum = 0;
+                    for (var k = 0; k < this.n; ++k) {
+                        sum += this.mat[i][k] * another.mat[k][j];
+                    }
+                    mat[i][j] = sum;
+                }
+            }
+            return new Matrix(this.m, another.n, mat);
+        } else {
+            console.error('Error dimension when multiply matrix.');
+            return null;
+        }
+    },
+    
+    transpose: function() {
+        var mat = new Array(this.n);
+        for (var i = 0; i < this.n; ++i) {
+            mat[i] = new Array(this.m);
+            for (var j = 0; j < this.m; ++j) {
+                mat[i][j] = this.mat[j][i];
+            }
+        }
+        return new Matrix(this.n, this.m, mat);
+    },
+    
+    add: function(another) {
+        if (this.m === another.m && this.n === another.n) {
+            for (var i = 0; i < this.m; ++i) {
+                for (var j = 0; j < this.n; ++j) {
+                    this.mat[i][j] += another.mat[i][j];
+                }
+            }
+            return this;
+        } else {
+            console.error('Error dimension when add matrix.');
+            return null;
+        }
+    },
+    
+    minus: function(another) {
+        if (this.m === another.m && this.n === another.n) {
+            for (var i = 0; i < this.m; ++i) {
+                for (var j = 0; j < this.n; ++j) {
+                    this.mat[i][j] -= another.mat[i][j];
+                }
+            }
+            return this;
+        } else {
+            console.error('Error dimension when add matrix.');
+            return null;
+        }
+    },
+    
+    negative: function() {
+        for (var i = 0; i < this.m; ++i) {
+            for (var j = 0; j < this.n; ++j) {
+                this.mat[i][j] = -this.mat[i][j];
+            }
+        }
+        return this;
+    },
+    
+    copy: function() {
+        var matrix = new Matrix(this.m, this.n, this.mat);
+        matrix.mat = new Array(this.m);
+        for (var i = 0; i < this.m; ++i) {
+            matrix.mat[i] = new Array(this.n);
+            for (var j = 0; j < this.n; ++j) {
+                matrix.mat[i][j] = 0;
+            }
+        }
+        return matrix;
     }
 };
 
