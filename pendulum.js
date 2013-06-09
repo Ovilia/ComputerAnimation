@@ -2,17 +2,19 @@ var pd = {
     width: 800,
     height: 600,
     yOffset: 200,
-    displayRatio: 100,
+    displayRatio: 20,
     ballRadius: 20,
     
-    minX: -10,
+    minX: -20,
     xCnt: 50,
     parabolaA: 0.1,
+    ks: 100,
+    kd: 100,
     
     system: null,
     solver: null,
     mass: [1, 1],
-    stickLength: 1,
+    stickLength: 4,
     
     wMat: null,
     
@@ -35,8 +37,7 @@ function init() {
     
     // particle system and solver
     pd.system = new ParticleSystem(2, pd.mass);
-    pd.system.particles[0].s.set(5, pd.parabolaA * 25, 0);
-    pd.system.particles[1].s.set(5, pd.parabolaA * 25 - pd.stickLength, 0);
+    pd.system.particles[1].s.set(pd.stickLength, 0, 0);
     pd.solver = new MidPointSolver(pd.system, pd.renderDeltaTime / 1000,
             computeForce);
     
@@ -135,6 +136,11 @@ function computeForce() {
     var p1 = pd.system.particles[0];
     var p2 = pd.system.particles[1];
     
+    var C = new Matrix(2, 1, [
+        [pd.parabolaA * p1.s.x * p1.s.x - p1.s.y],
+        [(p1.s.x - p2.s.x) * (p1.s.x - p2.s.x) + (p1.s.y - p2.s.y)
+                * (p1.s.y - p2.s.y) - pd.stickLength * pd.stickLength]
+    ]);
     var jMat = new Matrix(2, 6, [
         [2 * pd.parabolaA * p1.s.x, -1, 0, 0, 0, 0],
         [2 * (p1.s.x - p2.s.x), 2 * (p1.s.y - p2.s.y), 0,
@@ -162,10 +168,12 @@ function computeForce() {
         [p2.f.y],
         [p2.f.z]
     ]);
+    var Cd = jMat.multiply(qd);
     
     var jWjt = jMat.multiply(pd.wMat).multiply(jtMat);
     var right = jdMat.multiply(qd).negative()
-            .minus(jMat.multiply(pd.wMat).multiply(Q));
+            .minus(jMat.multiply(pd.wMat).multiply(Q))
+            .minus(C.multiply(pd.ks)).minus(Cd.multiply(pd.kd));
     
     var a = jWjt.mat[0][0];
     var b = jWjt.mat[0][1];
@@ -183,4 +191,5 @@ function computeForce() {
     p2.f.set(force.mat[3][0], force.mat[4][0], force.mat[5][0]);
     //p1.f.add(new Vec3(force.mat[0][0], force.mat[1][0], force.mat[2][0]));
     //p2.f.add(new Vec3(force.mat[3][0], force.mat[4][0], force.mat[5][0]));
+    //console.log(p1.v.x * p1.v.x + p1.v.y * p1.v.y + p2.v.x * p2.v.x + p2.v.y * p2.v.y);
 }

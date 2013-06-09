@@ -103,7 +103,15 @@ function Matrix(m, n, mat) {
 
 Matrix.prototype = {
     multiply: function(another) {
-        if (another && another.m === this.n) {
+        if (typeof another === 'number') {
+            for (var i = 0; i < this.m; ++i) {
+                for (var j = 0; j < this.n; ++j) {
+                    this.mat[i][j] *= another;
+                }
+            }
+            return this;
+                
+        } else if (another && another.m === this.n) {
             var mat = new Array(this.m);
             for (var i = 0; i < this.m; ++i) {
                 mat[i] = new Array(another.n);
@@ -116,6 +124,7 @@ Matrix.prototype = {
                 }
             }
             return new Matrix(this.m, another.n, mat);
+        
         } else {
             console.error('Error dimension when multiply matrix.');
             return null;
